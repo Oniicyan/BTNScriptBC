@@ -44,8 +44,8 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 New-Item -ItemType Directory -Path $env:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
 
-$USERINFO = $env:USERPROFILE\BTN_BC\userinfo.txt
-if (Test-Path $USERINFO)) {
+$USERINFO = "$env:USERPROFILE\BTN_BC\userinfo.txt"
+if (Test-Path $USERINFO) {
 	$BCUSER = (-split (Get-Content $USERINFO | Select-String 'BCUSER'))[2]
 	$BCPORT = (-split (Get-Content $USERINFO | Select-String 'BCPORT'))[2]
 	$BCUSER = (-split (Get-Content $USERINFO | Select-String 'BCUSER'))[2]
