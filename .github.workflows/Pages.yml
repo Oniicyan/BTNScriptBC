@@ -1,0 +1,20 @@
+name: Pages
+on:
+ push:
+   branches: main
+ schedule:
+ - cron: 55 * * * *
+jobs:
+ Pages:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v4
+     - name: Pushes to another repository
+       uses: cpina/github-action-push-to-another-repository@main
+       env:
+         SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+       with:
+         source-directory: '.'
+         target-directory: 'BTNScriptBC'
+         destination-github-username: 'Oniicyan'
+         destination-repository-name: 'Pages'
