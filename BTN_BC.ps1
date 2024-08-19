@@ -113,6 +113,9 @@ if (!(Test-Path $INFOPATH)) {
 	echo "  请填写用户信息（点击鼠标右键粘贴）"
 	echo "  ----------------------------------"
 	echo ""
+	echo "  地址可填写 IP 或域名"
+	echo "  无需 http:// 或 /panel 等 URL 标识"
+	echo ""
 	$UIADDR = Read-Host -Prompt '  BitComet WebUI 地址'
 	$UIPORT = Read-Host -Prompt '  BitComet WebUI 端口'
 	$UIUSER = Read-Host -Prompt '  BitComet WebUI 账号'
