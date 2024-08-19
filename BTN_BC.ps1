@@ -115,15 +115,17 @@ if (!(Test-Path $INFOPATH)) {
 	echo "  请填写用户信息（点击鼠标右键粘贴）"
 	echo "  ----------------------------------"
 	echo ""
-	echo "  地址可填写 IP 或域名"
-	echo "  无需 http:// 或 /panel 等 URL 标识"
-	echo ""
+	echo "  地址可填写 IPv4、IPv6 或域名"
+	echo "  无需 http:// 或 /panel/ 等 URL 标识"
 	echo "  本机可填写 127.0.0.1 或 localhost"
+	echo ""
+	echo "  WebUI 密码将明文保存至本地文件"
+	echo "  不建议重复使用常用密码"
 	echo ""
 	$UIADDR = Read-Host -Prompt '  BitComet WebUI 地址'
 	$UIPORT = Read-Host -Prompt '  BitComet WebUI 端口'
 	$UIUSER = Read-Host -Prompt '  BitComet WebUI 账号'
-	$UIPASS = Read-Host -Prompt '  BitComet WebUI 密码' -AsSecureString | ConvertFrom-SecureString
+	$UIPASS = Read-Host -Prompt '  BitComet WebUI 密码'
 	$APPUID = Read-Host -Prompt '  BTN AppId'
 	$APPSEC = Read-Host -Prompt '  BTN AppSecret'
 	Write-Output @"
@@ -151,11 +153,19 @@ $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
 $UIADDR = $USERINFO['UIADDR']
 $UIPORT = $USERINFO['UIPORT']
 $UIUSER = $USERINFO['UIUSER']
-$UIPASS = $USERINFO['UIPASS']
+$UIPASS = ConvertTo-SecureString ($USERINFO['UIPASS']) -AsPlainText -Force
 $APPUID = $USERINFO['APPUID']
 $APPSEC = $USERINFO['APPSEC']
+if ($UIADDR -Match ':') {
+	$UIHOST = "[${UIADDR}]:${UIPORT}"
+} else {
+	$UIHOST = "${UIADDR}:${UIPORT}"
+}
+$UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
 
-function Test-WebuiPort {
+Write-Host (Get-Date) [ WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
+
+function Test-WebUIPort {
 	param ($WAITSEC)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
 		Write-Host (Get-Date) [ BitComet WebUI 未开启，$WAITSEC 秒后重试 ] -ForegroundColor Yellow
@@ -163,7 +173,7 @@ function Test-WebuiPort {
 	}
 }
 
-Test-WebuiPort 600
+Test-WebUIPort 600
 
 Add-Type @"
     using System.Net;
@@ -177,15 +187,18 @@ Add-Type @"
     }
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
-$UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS | ConvertTo-SecureString))
-$UIHOST = "${UIADDR}:${UIPORT}"
+
 $UIHOME = "http://$UIHOST"
 while (!($UIRESP.StatusCode -eq 200)) {
 	try {
 		$UIRESP = Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
 	} catch {
-		Write-Host $_ -ForegroundColor Red
-		Write-Host (Get-Date) [ 网页访问失败 ] -ForegroundColor Red
+		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		if ($_ -Match '401') {
+			Write-Host (Get-Date) [ 目标网页认证失败，请确认 WebUI 的账号与密码 ] -ForegroundColor Red
+		} else {
+			Write-Host (Get-Date) [ 目标网页访问失败，请留意错误消息 ] -ForegroundColor Red
+		}
 		return
 	}
 	switch ($UIRESP.StatusCode) {
@@ -202,22 +215,18 @@ while (!($UIRESP.StatusCode -eq 200)) {
 	}
 }
 
-function Test-BCWebui {
-	param ($WAITSEC)
-	while (!((Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME).Content -Match 'BitComet')) {
-		Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
-		break
-	} else {
-		Write-Host (Get-Date) [ 网页访问成功，但不是 BitComet WebUI，$WAITSEC 秒后重试 ] -ForegroundColor Yellow
-		Start-Sleep $WAITSEC
-	}
-}
 
+if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
+	Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
+} else {
+	Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
+	return
+}
 
 function Get-BTNConfig {
 	while ($RETRY -lt 3) {
 		try {
-			$CONFIGRAW = Invoke-WebRequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"} $CONFIGURL
+			$CONFIGRAW = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"} $CONFIGURL
 			$BTNCONFIG = $CONFIGRAW | ConvertFrom-Json
 			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
