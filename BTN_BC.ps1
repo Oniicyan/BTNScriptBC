@@ -303,7 +303,12 @@ function Get-TaskPeers {
 		$PEERS
 	)
 	$torrent_identifier = New-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
-	$torrent_size = Invoke-Expression ((($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' ')
+	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
+	if ($BIBYTE -Match '\dB') {
+		$torrent_size = $BIBYTE -Replace 'B'
+	} else {
+		$torrent_size = Invoke-Expression $BIBYTE
+	}
 	$downloader_progress = Get-QuadFloat ([regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
 	$PEERS -Split '<tr>' | Select-String '[IciC_]{4}' |% {
 		if ($_ -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
