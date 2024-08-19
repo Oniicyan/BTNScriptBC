@@ -45,6 +45,8 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 	}
 }
 
+$OriginalProgressPreference = $Global:ProgressPreference
+$Global:ProgressPreference = "SilentlyContinue"
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
 
@@ -369,5 +371,7 @@ while ($True) {
 	if (($LOOP % [int]( $BTNCONFIG.ability.reconfigure.interval / $BTNCONFIG.ability.submit_peers.interval)) -eq 0) {$BTNCONFIG = Get-BTNConfig}
 	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ]
 	timeout ($BTNCONFIG.ability.submit_peers.interval / 1000)
+	$Global:ProgressPreference = "SilentlyContinue"
 	Invoke-BTNSubmit
+	$Global:ProgressPreference = $OriginalProgressPreference
 }
