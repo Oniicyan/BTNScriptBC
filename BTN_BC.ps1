@@ -118,6 +118,8 @@ if (!(Test-Path $INFOPATH)) {
 	echo "  地址可填写 IP 或域名"
 	echo "  无需 http:// 或 /panel 等 URL 标识"
 	echo ""
+	echo "  本机可填写 127.0.0.1 或 localhost"
+	echo ""
 	$UIADDR = Read-Host -Prompt '  BitComet WebUI 地址'
 	$UIPORT = Read-Host -Prompt '  BitComet WebUI 端口'
 	$UIUSER = Read-Host -Prompt '  BitComet WebUI 账号'
@@ -156,8 +158,8 @@ $APPSEC = $USERINFO['APPSEC']
 function Test-WebuiPort {
 	param ($WAITSEC)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
-		Write-Host (Get-Date) [ BitComet WebUI 未开启，$WAITSEC 秒后重试 ]
-		timeout $WAITSEC
+		Write-Host (Get-Date) [ BitComet WebUI 未开启，$WAITSEC 秒后重试 ] -ForegroundColor Yellow
+		Start-Sleep $WAITSEC
 	}
 }
 
@@ -182,8 +184,8 @@ while (!($UIRESP.StatusCode -eq 200)) {
 	try {
 		$UIRESP = Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
 	} catch {
-		Write-Host $_
-		Write-Host (Get-Date) [ 网页访问失败 ]
+		Write-Host $_ -ForegroundColor Red
+		Write-Host (Get-Date) [ 网页访问失败 ] -ForegroundColor Red
 		return
 	}
 	switch ($UIRESP.StatusCode) {
@@ -194,8 +196,8 @@ while (!($UIRESP.StatusCode -eq 200)) {
 			$UIHOME = [String]($UIHOME | Select-String '.*:\d*') + $UIPATH
 		}
 		default {
-			Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 分钟后重试 ]
-			timeout 600
+			Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 分钟后重试 ] -ForegroundColor Yellow
+			Start-Sleep 600
 		}
 	}
 }
@@ -203,27 +205,35 @@ while (!($UIRESP.StatusCode -eq 200)) {
 function Test-BCWebui {
 	param ($WAITSEC)
 	while (!((Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME).Content -Match 'BitComet')) {
-		Write-Host (Get-Date) [ BitComet WebUI 访问成功 ]
+		Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
 		break
 	} else {
-		Write-Host (Get-Date) [ 网页访问成功，但不是 BitComet WebUI，$WAITSEC 秒后重试]
-		timeout $WAITSEC
+		Write-Host (Get-Date) [ 网页访问成功，但不是 BitComet WebUI，$WAITSEC 秒后重试 ] -ForegroundColor Yellow
+		Start-Sleep $WAITSEC
 	}
 }
 
 
 function Get-BTNConfig {
-	while ($RETRY -lt 3) {
+	while ($RETRY -le 3) {
 		try {
 			$CONFIGRAW = Invoke-WebRequest -TimeoutSec 30 -UserAgent $USERANGET -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"} $CONFIGURL
 			$BTNCONFIG = $CONFIGRAW | ConvertFrom-Json
 			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ]
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
 			break
 		} catch {
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后重试 ]
 			$RETRY++
-			timeout 600
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后重试第 $RETRY 次 ] -ForegroundColor Yellow
+			Start-Sleep 600
+		}
+	}
+	if ($RETRY -ge 3) {
+		if (Test-Path $ENV:USERPROFILE\BTN_BC\config.json) {
+			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
+		} else {
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
+			return
 		}
 	}
 	Get-Content $ENV:USERPROFILE\BTN_BC\config.json | ConvertFrom-Json
@@ -231,7 +241,7 @@ function Get-BTNConfig {
 
 function Invoke-BTNSubmit {
 	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
-	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ]
+	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
 	$SUBMITHASH = @"
 {
 	"populate_time": $([DateTimeOffset]::Now.ToUnixTimeMilliseconds()),
@@ -239,7 +249,7 @@ function Invoke-BTNSubmit {
 }
 "@ | ConvertFrom-Json
 	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ]
+	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 	Invoke-SumbitPeers $SUBMITHASH
 }
 
@@ -257,10 +267,10 @@ function Invoke-SumbitPeers {
 	$GZIPSTREAM.Dispose()
 	try {
 		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERANGET -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"; "Content-Encoding"="gzip"; "Content-Type"="application/json"} -Method Post -InFile $PEERSGZIP $BTNCONFIG.ability.submit_peers.endpoint | Out-Null
-		Write-Host (Get-Date) [ 提交 Peers 快照成功 ]
+		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
 	} catch {
-		Write-Host (Get-Date) [ $_ ]
-		Write-Host (Get-Date) [ 提交 Peers 快照失败 ]
+		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 提交 Peers 快照失败 ] -ForegroundColor Red
 	}
 	Remove-Item $PEERSJSON
 	Remove-Item $PEERSGZIP
@@ -303,7 +313,7 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':([0-9]{1,5}$)')[1]
 		} else {
-			Write-Host (Get-Date) [ 提取了一个无法识别的地址 ]
+			Write-Host (Get-Date) [ 提取了一个无法识别的地址 ] -ForegroundColor Red
 			return
 		}
 		$_ -Match '(?<=>)[0-9a-f]{16}' | Out-Null
@@ -369,8 +379,8 @@ $BTNCONFIG = Get-BTNConfig
 while ($True) {
 	$LOOP++
 	if (($LOOP % [int]( $BTNCONFIG.ability.reconfigure.interval / $BTNCONFIG.ability.submit_peers.interval)) -eq 0) {$BTNCONFIG = Get-BTNConfig}
-	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ]
-	timeout ($BTNCONFIG.ability.submit_peers.interval / 1000)
+	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ] -ForegroundColor Cyan
+	Start-Sleep ($BTNCONFIG.ability.submit_peers.interval / 1000)
 	$Global:ProgressPreference = "SilentlyContinue"
 	Invoke-BTNSubmit
 	$Global:ProgressPreference = $OriginalProgressPreference
