@@ -1,6 +1,6 @@
 Remove-Variable * -ErrorAction Ignore
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
-$USERANGET = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
+$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
 
 if ((Fltmc).Count -eq 3) {
 	echo ""
@@ -215,16 +215,16 @@ function Test-BCWebui {
 
 
 function Get-BTNConfig {
-	while ($RETRY -le 3) {
+	while ($RETRY -lt 3) {
 		try {
-			$CONFIGRAW = Invoke-WebRequest -TimeoutSec 30 -UserAgent $USERANGET -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"} $CONFIGURL
+			$CONFIGRAW = Invoke-WebRequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"} $CONFIGURL
 			$BTNCONFIG = $CONFIGRAW | ConvertFrom-Json
 			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
 			break
 		} catch {
 			$RETRY++
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后重试第 $RETRY 次 ] -ForegroundColor Yellow
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后第 $RETRY 次重试 ] -ForegroundColor Yellow
 			Start-Sleep 600
 		}
 	}
@@ -266,7 +266,7 @@ function Invoke-SumbitPeers {
 	$JSONSTREAM.Dispose()
 	$GZIPSTREAM.Dispose()
 	try {
-		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERANGET -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"; "Content-Encoding"="gzip"; "Content-Type"="application/json"} -Method Post -InFile $PEERSGZIP $BTNCONFIG.ability.submit_peers.endpoint | Out-Null
+		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"; "Content-Encoding"="gzip"; "Content-Type"="application/json"} -Method Post -InFile $PEERSGZIP $BTNCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
