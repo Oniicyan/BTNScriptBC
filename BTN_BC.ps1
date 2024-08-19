@@ -152,7 +152,7 @@ function Test-WebuiPort {
 	param ($WAITSEC)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
 		Write-Host (Get-Date) [ BitComet WebUI 未开启，$WAITSEC 秒后重试 ]
-		Start-Sleep $WAITSEC
+		timeout $WAITSEC
 	}
 }
 
@@ -190,7 +190,7 @@ while (!($UIRESP.StatusCode -eq 200)) {
 		}
 		default {
 			Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 分钟后重试 ]
-			Start-Sleep 600
+			timeout 600
 		}
 	}
 }
@@ -202,7 +202,7 @@ function Test-BCWebui {
 		break
 	} else {
 		Write-Host (Get-Date) [ 网页访问成功，但不是 BitComet WebUI，$WAITSEC 秒后重试]
-		Start-Sleep $WAITSEC
+		timeout $WAITSEC
 	}
 }
 
@@ -218,7 +218,7 @@ function Get-BTNConfig {
 		} catch {
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后重试 ]
 			$RETRY++
-			Start-Sleep 600
+			timeout 600
 		}
 	}
 	Get-Content $ENV:USERPROFILE\BTN_BC\config.json | ConvertFrom-Json
@@ -364,7 +364,7 @@ $BTNCONFIG = Get-BTNConfig
 while ($True) {
 	$LOOP++
 	if (($LOOP % [int]( $BTNCONFIG.ability.reconfigure.interval / $BTNCONFIG.ability.submit_peers.interval)) -eq 0) {$BTNCONFIG = Get-BTNConfig}
-	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后获取并提交 Peers 快照 ]
-	Start-Sleep ($BTNCONFIG.ability.submit_peers.interval / 1000)
+	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ]
+	timeout ($BTNCONFIG.ability.submit_peers.interval / 1000)
 	Invoke-BTNSubmit
 }
