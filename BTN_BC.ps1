@@ -45,7 +45,6 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 	}
 }
 
-$OriginalProgressPreference = $Global:ProgressPreference
 $Global:ProgressPreference = "SilentlyContinue"
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
@@ -261,7 +260,7 @@ function Get-BTNConfig {
 			break
 		} catch {
 			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-			Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red
+			if ($_ -Notmatch 'error code') {Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red}
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
 				exit
@@ -301,7 +300,7 @@ function Get-TaskPeers {
 			$peer_port = $Matches[0].Split(':')[1]
 		} elseif ($_ -Match '2[0-9a-f]{3}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
-			$peer_port = ($Matches[0] -Split ':([0-9]{1,5}$)')[1]
+			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
 			Write-Host (Get-Date) [ 提取了一个无法识别的地址：$_ ] -ForegroundColor Red
 		}
@@ -389,7 +388,7 @@ function Invoke-SumbitPeers {
 		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red
+		if ($_ -Notmatch 'error code') {Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red}
 		Write-Host (Get-Date) [ 提交 Peers 快照失败 ] -ForegroundColor Red
 	}
 	Remove-Item $PEERSGZIP
@@ -398,11 +397,9 @@ function Invoke-SumbitPeers {
 $BTNCONFIG = Get-BTNConfig
 
 while ($True) {
-	$LOOP++
-	if (($LOOP % [int]( $BTNCONFIG.ability.reconfigure.interval / $BTNCONFIG.ability.submit_peers.interval)) -eq 0) {$BTNCONFIG = Get-BTNConfig}
+	if (($LOOP % [int]( $BTNCONFIG.ability.reconfigure.interval / $BTNCONFIG.ability.submit_peers.interval)) -eq 1) {$BTNCONFIG = Get-BTNConfig}
 	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ] -ForegroundColor Cyan
 	Start-Sleep ($BTNCONFIG.ability.submit_peers.interval / 1000)
-	$Global:ProgressPreference = "SilentlyContinue"
 	Invoke-SumbitPeers
-	$Global:ProgressPreference = $OriginalProgressPreference
+	$LOOP++
 }
