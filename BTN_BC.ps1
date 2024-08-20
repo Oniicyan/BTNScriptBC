@@ -197,7 +197,7 @@ while (!($UIRESP.StatusCode -eq 200)) {
 		if ($_ -Match '401') {
 			Write-Host (Get-Date) [ 目标网页认证失败，请确认 WebUI 的账号与密码 ] -ForegroundColor Red
 		} else {
-			Write-Host (Get-Date) [ 目标网页访问失败，请留意错误消息 ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
 		}
 		return
 	}
@@ -223,29 +223,11 @@ if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitCom
 	return
 }
 
-function Get-BTNConfig {
-	while ($RETRY -lt 3) {
-		try {
-			$CONFIGRAW = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authorization"="Bearer $APPUID@$APPSEC"} $CONFIGURL
-			$BTNCONFIG = $CONFIGRAW | ConvertFrom-Json
-			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
-			break
-		} catch {
-			$RETRY++
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后第 $RETRY 次重试 ] -ForegroundColor Yellow
-			Start-Sleep 600
-		}
-	}
-	if ($RETRY -ge 3) {
-		if (Test-Path $ENV:USERPROFILE\BTN_BC\config.json) {
-			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
-		} else {
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
-			return
-		}
-	}
-	Get-Content $ENV:USERPROFILE\BTN_BC\config.json | ConvertFrom-Json
+function Get-ErrorMessage {
+	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
+	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+	$streamReader.Close()
+	$ErrResp.message
 }
 
 function Get-QuadFloat {
@@ -262,11 +244,42 @@ $CRC32 = add-type @"
 [DllImport("ntdll.dll")]
 public static extern uint RtlComputeCrc32(uint dwInitial, byte[] pData, int iLen);
 "@ -Name CRC32 -PassThru
-function New-SaltedHash {
+function Get-SaltedHash {
 	param ($INFOHASH)
 	$BYTE = [System.Text.Encoding]::UTF8.GetBytes($INFOHASH.ToLower())
-	$SALT = (($CRC32::RtlComputeCrc32(0, $BYTE, $BYTE.Count)).ToString("X8")).ToLower()
+	$SALT = ($CRC32::RtlComputeCrc32(0, $BYTE, $BYTE.Count)).ToString("x8")
+	$SALT = $SALT.Substring(6,2) + $SALT.Substring(4,2) + $SALT.Substring(2,2) + $SALT.Substring(0,2)
 	([System.BitConverter]::ToString(([System.Security.Cryptography.HashAlgorithm]::Create('SHA256')).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($INFOHASH + $SALT))) -Replace '-').ToLower()
+}
+
+function Get-BTNConfig {
+	while ($RETRY -lt 3) {
+		try {
+			$BTNCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authorization"="Bearer $APPUID@$APPSEC"} $CONFIGURL
+			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
+			break
+		} catch {
+			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+			Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red
+			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
+				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
+				exit
+			}
+			$RETRY++
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后第 $RETRY 次重试 ] -ForegroundColor Yellow
+			Start-Sleep 600
+		}
+	}
+	if ($RETRY -ge 3) {
+		if (Test-Path $ENV:USERPROFILE\BTN_BC\config.json) {
+			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
+		} else {
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
+			exit
+		}
+	}
+	Get-Content $ENV:USERPROFILE\BTN_BC\config.json | ConvertFrom-Json
 }
 
 function Get-TaskPeers {
@@ -274,7 +287,7 @@ function Get-TaskPeers {
 		$SUMMARY,
 		$PEERS
 	)
-	$torrent_identifier = New-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
+	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
 	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
 	if ($BIBYTE -Match '\dB') {
 		$torrent_size = $BIBYTE -Replace 'B'
@@ -290,8 +303,7 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':([0-9]{1,5}$)')[1]
 		} else {
-			Write-Host (Get-Date) [ 提取了一个无法识别的地址 ] -ForegroundColor Red
-			return
+			Write-Host (Get-Date) [ 提取了一个无法识别的地址：$_ ] -ForegroundColor Red
 		}
 		$_ -Match '(?<=>)[0-9a-f]{16}' | Out-Null
 		$peer_id = -Join ($Matches[0] -Replace '(..)','[char]0x${0};'| Invoke-Expression)
@@ -352,7 +364,16 @@ function Get-TaskPeers {
 }
 
 function Invoke-SumbitPeers {
-	param ($SUBMITHASH)
+	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
+	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
+	$SUBMITHASH = @"
+{
+	"populate_time": $([DateTimeOffset]::Now.ToUnixTimeMilliseconds()),
+	"peers": []
+}
+"@ | ConvertFrom-Json
+	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
+	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 	$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
 	$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
 	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
@@ -368,24 +389,10 @@ function Invoke-SumbitPeers {
 		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 提交 Peers 快照失败 ] -ForegroundColor Red
 	}
-	Remove-Item $PEERSJSON
 	Remove-Item $PEERSGZIP
-}
-
-function Invoke-BTNSubmit {
-	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
-	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
-	$SUBMITHASH = @"
-{
-	"populate_time": $([DateTimeOffset]::Now.ToUnixTimeMilliseconds()),
-	"peers": []
-}
-"@ | ConvertFrom-Json
-	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
-	Invoke-SumbitPeers $SUBMITHASH
 }
 
 $BTNCONFIG = Get-BTNConfig
@@ -396,6 +403,6 @@ while ($True) {
 	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ] -ForegroundColor Cyan
 	Start-Sleep ($BTNCONFIG.ability.submit_peers.interval / 1000)
 	$Global:ProgressPreference = "SilentlyContinue"
-	Invoke-BTNSubmit
+	Invoke-SumbitPeers
 	$Global:ProgressPreference = $OriginalProgressPreference
 }
