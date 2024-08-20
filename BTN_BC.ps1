@@ -226,7 +226,7 @@ if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitCom
 function Get-BTNConfig {
 	while ($RETRY -lt 3) {
 		try {
-			$CONFIGRAW = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"} $CONFIGURL
+			$CONFIGRAW = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authorization"="Bearer $APPUID@$APPSEC"} $CONFIGURL
 			$BTNCONFIG = $CONFIGRAW | ConvertFrom-Json
 			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
@@ -248,41 +248,14 @@ function Get-BTNConfig {
 	Get-Content $ENV:USERPROFILE\BTN_BC\config.json | ConvertFrom-Json
 }
 
-function Invoke-BTNSubmit {
-	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
-	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
-	$SUBMITHASH = @"
-{
-	"populate_time": $([DateTimeOffset]::Now.ToUnixTimeMilliseconds()),
-	"peers": []
-}
-"@ | ConvertFrom-Json
-	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
-	Invoke-SumbitPeers $SUBMITHASH
-}
-
-function Invoke-SumbitPeers {
-	param ($SUBMITHASH)
-	$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
-	$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
-	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
-	$JSONSTREAM = New-Object System.IO.FileStream($PEERSJSON,([IO.FileMode]::Open),([IO.FileAccess]::Read),([IO.FileShare]::Read))
-	$GZIPSTREAM = New-Object System.IO.FileStream($PEERSGZIP,([IO.FileMode]::Create),([IO.FileAccess]::Write),([IO.FileShare]::None))
-	$GZIPBUFFER = New-Object System.IO.Compression.GZipStream($GZIPSTREAM,[System.IO.Compression.CompressionMode]::Compress)
-	$JSONSTREAM.CopyTo($GZIPBUFFER)
-	$GZIPBUFFER.Dispose()
-	$JSONSTREAM.Dispose()
-	$GZIPSTREAM.Dispose()
-	try {
-		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authentication"="Bearer $APPUID@$APPSEC"; "Content-Encoding"="gzip"; "Content-Type"="application/json"} -Method Post -InFile $PEERSGZIP $BTNCONFIG.ability.submit_peers.endpoint | Out-Null
-		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
-	} catch {
-		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 提交 Peers 快照失败 ] -ForegroundColor Red
+function Get-QuadFloat {
+	param ($PERCENT)
+	if ($PERCENT -Match '100%') {
+		$QUADFLOAT = '1'
+	} else {
+	$QUADFLOAT = ('0.' + ($PERCENT -Replace '%|\.') + '00').Substring(0,6)
 	}
-	Remove-Item $PEERSJSON
-	Remove-Item $PEERSGZIP
+	Write-Output $QUADFLOAT
 }
 
 $CRC32 = add-type @"
@@ -294,16 +267,6 @@ function New-SaltedHash {
 	$BYTE = [System.Text.Encoding]::UTF8.GetBytes($INFOHASH.ToLower())
 	$SALT = (($CRC32::RtlComputeCrc32(0, $BYTE, $BYTE.Count)).ToString("X8")).ToLower()
 	([System.BitConverter]::ToString(([System.Security.Cryptography.HashAlgorithm]::Create('SHA256')).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($INFOHASH + $SALT))) -Replace '-').ToLower()
-}
-
-function Get-QuadFloat {
-	param ($PERCENT)
-	if ($PERCENT -Match '100%') {
-		$QUADFLOAT = '1'
-	} else {
-	$QUADFLOAT = ('0.' + ($PERCENT -Replace '%|\.') + '00').Substring(0,6)
-	}
-	Write-Output $QUADFLOAT
 }
 
 function Get-TaskPeers {
@@ -386,6 +349,43 @@ function Get-TaskPeers {
 		}
 		$SUBMITHASH.peers += $PEERHASH
 	}
+}
+
+function Invoke-SumbitPeers {
+	param ($SUBMITHASH)
+	$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
+	$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
+	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
+	$JSONSTREAM = New-Object System.IO.FileStream($PEERSJSON,([IO.FileMode]::Open),([IO.FileAccess]::Read),([IO.FileShare]::Read))
+	$GZIPSTREAM = New-Object System.IO.FileStream($PEERSGZIP,([IO.FileMode]::Create),([IO.FileAccess]::Write),([IO.FileShare]::None))
+	$GZIPBUFFER = New-Object System.IO.Compression.GZipStream($GZIPSTREAM,[System.IO.Compression.CompressionMode]::Compress)
+	$JSONSTREAM.CopyTo($GZIPBUFFER)
+	$GZIPBUFFER.Dispose()
+	$JSONSTREAM.Dispose()
+	$GZIPSTREAM.Dispose()
+	try {
+		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authorization"="Bearer $APPUID@$APPSEC"; "Content-Encoding"="gzip"; "Content-Type"="application/json"} -Method Post -InFile $PEERSGZIP $BTNCONFIG.ability.submit_peers.endpoint | Out-Null
+		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
+	} catch {
+		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 提交 Peers 快照失败 ] -ForegroundColor Red
+	}
+	Remove-Item $PEERSJSON
+	Remove-Item $PEERSGZIP
+}
+
+function Invoke-BTNSubmit {
+	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
+	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
+	$SUBMITHASH = @"
+{
+	"populate_time": $([DateTimeOffset]::Now.ToUnixTimeMilliseconds()),
+	"peers": []
+}
+"@ | ConvertFrom-Json
+	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
+	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
+	Invoke-SumbitPeers $SUBMITHASH
 }
 
 $BTNCONFIG = Get-BTNConfig
