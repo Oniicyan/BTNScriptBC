@@ -1,6 +1,8 @@
 Remove-Variable * -ErrorAction Ignore
+$Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
+$AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
 
 if ((Fltmc).Count -eq 3) {
 	echo ""
@@ -9,7 +11,7 @@ if ((Fltmc).Count -eq 3) {
 	return
 }
 
-$TESTGUID = '{62809d89-9d3b-486b-808f-8c893c1c3378}'
+$TESTGUID = "{62809d89-9d3b-486b-808f-8c893c1c3378}"
 Remove-NetFirewallDynamicKeywordAddress -Id $TESTGUID -ErrorAction Ignore
 if (New-NetFirewallDynamicKeywordAddress -Id $TESTGUID -Keyword "BT_BAN_TEST" -Address 1.2.3.4 -ErrorAction Ignore) {
 	Remove-NetFirewallDynamicKeywordAddress -Id $TESTGUID
@@ -45,11 +47,11 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 	}
 }
 
-$Global:ProgressPreference = "SilentlyContinue"
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
-
 $INFOPATH = "$ENV:USERPROFILE\BTN_BC\USERINFO.txt"
+$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+
 if (!(Test-Path $INFOPATH)) {
 	echo ""
 	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
@@ -95,7 +97,6 @@ if (!(Test-Path $INFOPATH)) {
 	$BTINFO.ShowDialog() | Out-Null
 	$BTPATH = $BTINFO.FileName
 	$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
-	$DYKWID = '{da62ac48-4707-4adf-97ea-676470a460f5}'
 	Remove-NetFirewallRule -DisplayName "BTN_$BTNAME" -ErrorAction Ignore
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
@@ -121,12 +122,12 @@ if (!(Test-Path $INFOPATH)) {
 	echo "  WebUI 密码将明文保存至本地文件"
 	echo "  不建议重复使用常用密码"
 	echo ""
-	$UIADDR = Read-Host -Prompt '  BitComet WebUI 地址'
-	$UIPORT = Read-Host -Prompt '  BitComet WebUI 端口'
-	$UIUSER = Read-Host -Prompt '  BitComet WebUI 账号'
-	$UIPASS = Read-Host -Prompt '  BitComet WebUI 密码'
-	$APPUID = Read-Host -Prompt '  BTN AppId'
-	$APPSEC = Read-Host -Prompt '  BTN AppSecret'
+	$UIADDR = Read-Host -Prompt "  BitComet WebUI 地址"
+	$UIPORT = Read-Host -Prompt "  BitComet WebUI 端口"
+	$UIUSER = Read-Host -Prompt "  BitComet WebUI 账号"
+	$UIPASS = Read-Host -Prompt "  BitComet WebUI 密码"
+	$APPUID = Read-Host -Prompt "  BTN AppId"
+	$APPSEC = Read-Host -Prompt "  BTN AppSecret"
 	Write-Output @"
 UIADDR = $UIADDR
 UIPORT = $UIPORT
@@ -165,14 +166,11 @@ $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS
 Write-Host (Get-Date) [ WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
 
 function Test-WebUIPort {
-	param ($WAITSEC)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
-		Write-Host (Get-Date) [ BitComet WebUI 未开启，$WAITSEC 秒后重试 ] -ForegroundColor Yellow
-		Start-Sleep $WAITSEC
+		Write-Host (Get-Date) [ BitComet WebUI 未开启，600 秒后重试 ] -ForegroundColor Yellow
+		Start-Sleep 600
 	}
 }
-
-Test-WebUIPort 600
 
 Add-Type @"
     using System.Net;
@@ -188,7 +186,7 @@ Add-Type @"
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
 $UIHOME = "http://$UIHOST"
-while (!($UIRESP.StatusCode -eq 200)) {
+while ($UIRESP.StatusCode -ne 200) {
 	try {
 		$UIRESP = Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
 	} catch {
@@ -226,13 +224,13 @@ function Get-ErrorMessage {
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
 	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
 	$streamReader.Close()
-	$ErrResp.message
+	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
 }
 
 function Get-QuadFloat {
 	param ($PERCENT)
 	if ($PERCENT -Match '100%') {
-		$QUADFLOAT = '1'
+		$QUADFLOAT = "1"
 	} else {
 	$QUADFLOAT = ('0.' + ($PERCENT -Replace '%|\.') + '00').Substring(0,6)
 	}
@@ -254,13 +252,13 @@ function Get-SaltedHash {
 function Get-BTNConfig {
 	while ($RETRY -lt 3) {
 		try {
-			$BTNCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authorization"="Bearer $APPUID@$APPSEC"} $CONFIGURL
-			$BTNCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\config.json
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $BTNCONFIG.ability.reconfigure.version ] -ForegroundColor Green
+			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
+			$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $NEWCONFIG.ability.reconfigure.version ] -ForegroundColor Green
 			break
 		} catch {
+			Get-ErrorMessage
 			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-			if ($_ -Notmatch 'error code') {Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red}
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
 				exit
@@ -271,14 +269,14 @@ function Get-BTNConfig {
 		}
 	}
 	if ($RETRY -ge 3) {
-		if (Test-Path $ENV:USERPROFILE\BTN_BC\config.json) {
+		if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
 			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
 		} else {
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
 			exit
 		}
 	}
-	Get-Content $ENV:USERPROFILE\BTN_BC\config.json | ConvertFrom-Json
+	$Global:NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
 }
 
 function Get-TaskPeers {
@@ -293,7 +291,7 @@ function Get-TaskPeers {
 	} else {
 		$torrent_size = Invoke-Expression $BIBYTE
 	}
-	$downloader_progress = Get-QuadFloat ([regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
+	$downloader_progress = Get-QuadFloat ([Regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
 	$PEERS -Split '<tr>' | Select-String '[IciC_]{4}' |% {
 		if ($_ -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
 			$ip_address = $Matches[0].Split(':')[0]
@@ -313,15 +311,15 @@ function Get-TaskPeers {
 			$client_name = $Matches[0]
 		}
 		$_ -Match '(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)' | Out-Null
-		$downloaded = Invoke-Expression ((([regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
-		$uploaded = Invoke-Expression ((([regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
+		$downloaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
+		$uploaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
 		$RATESTR = $_ -Replace '(Remote|Local).*'
-		$RATEVAL = [regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
+		$RATEVAL = [Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
 		if ($RATEVAL.Count -eq 0) {
 			$rt_download_speed = 0
 			$rt_upload_speed = 0
 		} elseif ($RATEVAL.Count -eq 1) {
-			if ([regex]::Matches($_,'(?<=[0-9a-f]{40}).*') -Cmatch '..i.') {
+			if ([Regex]::Matches($_,'(?<=[0-9a-f]{40}).*') -Cmatch '..i.') {
 				$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 				$rt_upload_speed = 0
 			} else {
@@ -332,9 +330,9 @@ function Get-TaskPeers {
 			$rt_download_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
 			$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 		}
-		$peer_progress = Get-QuadFloat ([regex]::Matches($_ ,'\d*.?\d%'))
+		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
 		$peer_flag = ""
-		switch -Regex ([regex]::Matches($_,'[IciC_]{4}').Value) {
+		switch -Regex ([Regex]::Matches($_,'[IciC_]{4}').Value) {
 			'Ic..' {$peer_flag = $peer_flag + 'd '}
 			'I_..' {$peer_flag = $peer_flag + 'D '}
 			'..iC' {$peer_flag = $peer_flag + 'u '}
@@ -345,7 +343,7 @@ function Get-TaskPeers {
 		if ($_ -Match 'Remote') {$peer_flag = $peer_flag + 'I'}
 		$PEERHASH = @{
 			ip_address = $ip_address
-			peer_port = [int]$peer_port
+			peer_port = [Int]$peer_port
 			peer_id = $peer_id
 			client_name = $client_name
 			torrent_identifier = $torrent_identifier
@@ -356,13 +354,14 @@ function Get-TaskPeers {
 			rt_upload_speed = [Math]::Round($rt_upload_speed)
 			peer_progress = [decimal]$peer_progress
 			downloader_progress = [decimal]$downloader_progress
-			peer_flag = $peer_flag
+			peer_flag = $peer_flag -Replace ' $'
 		}
 		$SUBMITHASH.peers += $PEERHASH
 	}
 }
 
-function Invoke-SumbitPeers {
+function Get-PeersJson {
+	Test-WebUIPort
 	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
 	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
 	$SUBMITHASH = @"
@@ -372,10 +371,13 @@ function Invoke-SumbitPeers {
 }
 "@ | ConvertFrom-Json
 	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peer，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
-	$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
-	$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
 	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
+	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
+}
+
+$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
+$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
+function Invoke-SumbitPeers {
 	$JSONSTREAM = New-Object System.IO.FileStream($PEERSJSON,([IO.FileMode]::Open),([IO.FileAccess]::Read),([IO.FileShare]::Read))
 	$GZIPSTREAM = New-Object System.IO.FileStream($PEERSGZIP,([IO.FileMode]::Create),([IO.FileAccess]::Write),([IO.FileShare]::None))
 	$GZIPBUFFER = New-Object System.IO.Compression.GZipStream($GZIPSTREAM,[System.IO.Compression.CompressionMode]::Compress)
@@ -383,23 +385,67 @@ function Invoke-SumbitPeers {
 	$GZIPBUFFER.Dispose()
 	$JSONSTREAM.Dispose()
 	$GZIPSTREAM.Dispose()
+	$GZIPLENGTH = [Regex]::Matches(((Get-Item $PEERSGZIP).Length / 1KB),'\d*\.?\d')[0].Value
+	if ($GZIPLENGTH -Notmatch '\.\d') {$GZIPLENGTH = $GZIPLENGTH + '.0'}
 	try {
-		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers @{"Authorization"="Bearer $APPUID@$APPSEC"; "Content-Encoding"="gzip"; "Content-Type"="application/json"} -Method Post -InFile $PEERSGZIP $BTNCONFIG.ability.submit_peers.endpoint | Out-Null
-		Write-Host (Get-Date) [ 提交 Peers 快照成功 ] -ForegroundColor Green
+		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
+		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
+		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		if ($_ -Notmatch 'error code') {Write-Host (Get-Date) [ (Get-ErrorMessage) ] -ForegroundColor Red}
-		Write-Host (Get-Date) [ 提交 Peers 快照失败 ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 提交 Peers 快照失败，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Yellow
 	}
 	Remove-Item $PEERSGZIP
 }
 
-$BTNCONFIG = Get-BTNConfig
+$RULESJSON = "$ENV:USERPROFILE\BTN_BC\RULES.json"
+$BTNIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
+function Get-BTNRules {
+	if ((Get-Content $RULESJSON -ErrorAction Ignore) -Match 'version') {
+		$REVURL = "?rev=$(([Regex]::Matches(((Get-Content $RULESJSON -ErrorAction Ignore) | Select-String 'version'),'[0-9a-f]{8}')).Value)"
+	}
+	try {
+		$RULESIWR = Invoke-Webrequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NOWCONFIG.ability.rules.endpoint + $REVURL)
+		if ($RULESIWR.Content.Length -eq 0) {return}
+		$RULESOBJ = [system.Text.Encoding]::UTF8.GetString($RULESIWR.RawContentStream.ToArray()) | ConvertFrom-Json
+		$RULESOBJ | ConvertTo-Json | Out-File $RULESJSON
+		$RULESOBJ.IP.PSObject.Properties.value | Out-File $BTNIPLIST
+		if (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore) {
+			Update-NetFirewallDynamicKeywordAddress -Id $DYKWID -Addresses ((Get-Content $BTNIPLIST) -Join ',') | Out-Null
+		} else {
+		New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses ((Get-Content $BTNIPLIST) -Join ',') | Out-Null
+		}
+		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Green
+	} catch {
+		Get-ErrorMessage
+		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 更新动态关键字失败，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Yellow
+	}
+}
 
 while ($True) {
-	if (($LOOP % [int]( $BTNCONFIG.ability.reconfigure.interval / $BTNCONFIG.ability.submit_peers.interval)) -eq 1) {$BTNCONFIG = Get-BTNConfig}
-	Write-Host (Get-Date) [ $($BTNCONFIG.ability.submit_peers.interval / 1000) 秒后提取并提交 Peers 快照 ] -ForegroundColor Cyan
-	Start-Sleep ($BTNCONFIG.ability.submit_peers.interval / 1000)
-	Invoke-SumbitPeers
-	$LOOP++
+	if (!$NOWCONFIG) {Get-BTNConfig}
+	if (
+		$NOWCONFIG.ability.submit_peers.interval -ne $NEWCONFIG.ability.submit_peers.interval -or
+		$NOWCONFIG.ability.rules.interval -ne $NEWCONFIG.ability.rules.interval -or
+		$NOWCONFIG.ability.reconfigure.interval -ne $NEWCONFIG.ability.reconfigure.interval
+	) {
+		$NOWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
+		$NOWCONFIG.ability.PSObject.Properties.Name |% {
+			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds ($NOWCONFIG.ability.$_.interval / 1000)))
+		}
+		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
+		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
+		$NOWCONFIG.ability.reconfigure | Add-Member cmd "Get-BTNConfig"
+		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
+		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
+		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.rules.interval / 1000) 秒查询封禁规则更新 ] -ForegroundColor Cyan
+		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
+	}
+	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
+	if ($JOBLIST[0].cmd) {
+		if ((Get-Date) -lt $JOBLIST[0].next) {Start-Sleep ($JOBLIST[0].next - (Get-Date)).Seconds}
+		Invoke-Expression $JOBLIST[0].cmd
+		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
+	}
 }
