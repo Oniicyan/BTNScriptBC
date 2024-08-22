@@ -254,7 +254,10 @@ function Get-BTNConfig {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功，当前版本为 $NEWCONFIG.ability.reconfigure.version ] -ForegroundColor Green
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功 ] -ForegroundColor Green
+			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
+				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version ] -ForegroundColor Green
+			}
 			break
 		} catch {
 			Get-ErrorMessage
