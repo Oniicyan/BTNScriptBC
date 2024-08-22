@@ -447,8 +447,10 @@ while ($True) {
 	}
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if ($JOBLIST[0].cmd) {
-		if ((Get-Date) -lt $JOBLIST[0].next) {Start-Sleep ($JOBLIST[0].next - (Get-Date)).Seconds}
+		if ((Get-Date) -lt $JOBLIST[0].next) {Start-Sleep ($JOBLIST[0].next - (Get-Date)).TotalSeconds}
 		Invoke-Expression $JOBLIST[0].cmd
 		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
+	} else {
+		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000)))
 	}
 }
