@@ -149,7 +149,15 @@ APPSEC = $APPSEC
 	Clear-Host
 }
 
+Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor DarkBlue
+
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
+if ($USERINFO.Count -eq 6) {
+	Write-Host (Get-Date) [ 用户信息载入成功 ] -ForegroundColor Green
+} else {
+	Write-Host (Get-Date) [ 用户信息已载入，但条目数量不符 ] -ForegroundColor Yellow
+	Write-Host (Get-Date) [ 如在运行中发生错误，请删除 USERINFO.txt 后重试 ] -ForegroundColor Yellow
+}
 $UIADDR = $USERINFO['UIADDR']
 $UIPORT = $USERINFO['UIPORT']
 $UIUSER = $USERINFO['UIUSER']
@@ -161,8 +169,8 @@ if ($UIADDR -Match ':') {
 } else {
 	$UIHOST = "${UIADDR}:${UIPORT}"
 }
+$UIHOME = "http://$UIHOST"
 $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
-
 Write-Host (Get-Date) [ WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
 
 function Test-WebUIPort {
@@ -185,7 +193,6 @@ Add-Type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
-$UIHOME = "http://$UIHOST"
 while ($UIRESP.StatusCode -ne 200) {
 	try {
 		$UIRESP = Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
@@ -254,8 +261,8 @@ function Get-BTNConfig {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置成功 ] -ForegroundColor Green
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
+				Write-Host (Get-Date) [ 获取 BTN 服务器配置成功 ] -ForegroundColor Green
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version ] -ForegroundColor Green
 			}
 			break
@@ -279,7 +286,7 @@ function Get-BTNConfig {
 			exit
 		}
 	}
-	$Global:NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
+	$Global:NEWCONFIG = $NEWCONFIG
 }
 
 function Get-TaskPeers {
@@ -433,7 +440,7 @@ while ($True) {
 		$NOWCONFIG.ability.rules.interval -ne $NEWCONFIG.ability.rules.interval -or
 		$NOWCONFIG.ability.reconfigure.interval -ne $NEWCONFIG.ability.reconfigure.interval
 	) {
-		$NOWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
+		$NOWCONFIG = $NEWCONFIG
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
 			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds ($NOWCONFIG.ability.$_.interval / 1000)))
 		}
