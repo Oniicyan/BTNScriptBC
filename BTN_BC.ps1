@@ -149,7 +149,7 @@ APPSEC = $APPSEC
 	Clear-Host
 }
 
-Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor DarkBlue
+Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor DarkCyan
 
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
 if ($USERINFO.Count -eq 6) {
@@ -262,7 +262,6 @@ function Get-BTNConfig {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
-				Write-Host (Get-Date) [ 获取 BTN 服务器配置成功 ] -ForegroundColor Green
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version ] -ForegroundColor Green
 			}
 			break
@@ -447,7 +446,7 @@ while ($True) {
 		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
 		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
 		$NOWCONFIG.ability.reconfigure | Add-Member cmd "Get-BTNConfig"
-		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
+		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor DarkCyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.rules.interval / 1000) 秒查询封禁规则更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
