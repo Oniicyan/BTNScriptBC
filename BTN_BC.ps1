@@ -185,6 +185,7 @@ function Test-WebUIPort {
 			Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
 		} else {
 			Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 			exit
 		}
 	}
@@ -280,6 +281,7 @@ function Get-BTNConfig {
 			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
+				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 				exit
 			}
 			$RETRY++
@@ -292,6 +294,7 @@ function Get-BTNConfig {
 			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
 		} else {
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 			exit
 		}
 	}
