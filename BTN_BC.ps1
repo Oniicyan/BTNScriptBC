@@ -358,10 +358,14 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 提取了一个无法识别的地址：$_ ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 提取了一个无法识别的地址：$($Matches[0])] -ForegroundColor Red
 		}
 		$_ -Match '(?<=>)[0-9a-f]{16}' | Out-Null
-		$peer_id = -Join ($Matches[0] -Replace '(..)','[char]0x${0};'| Invoke-Expression)
+		try {
+			$peer_id = -Join ($Matches[0] -Replace '(..)','[char]0x${0};'| Invoke-Expression)
+		} catch {
+			Write-Host (Get-Date) [ 提取了一个无法识别的 PeerId：$($Matches[0])] -ForegroundColor Red
+		}
 		$_ -Match '(?<=\d:\d\d:\d\d<\/td><td>).*?(?=<)' | Out-Null
 		if ($Matches[0] -Match 'n/a') {
 			$client_name = ""
