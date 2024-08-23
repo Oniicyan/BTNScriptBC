@@ -172,13 +172,14 @@ if ($UIADDR -Match ':') {
 Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
 
 function Test-WebUIPort {
-	param($CHECK)
+	param($FLAG)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
-		if (!$CHECK) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
-		$CHECK = 1
+		if ((!$FLAG) -or ($FLAG -eq 1)) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
+		if (!$FLAG) {$FLAG = 2}
+		if ($FLAG -eq 1) {$FLAG = 3}
 		Start-Sleep 60
 	}
-	if ($CHECK) {
+	if ($FLAG -eq 2) {
 		if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
 			Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
 		} else {
@@ -187,6 +188,8 @@ function Test-WebUIPort {
 		}
 	}
 }
+
+Test-WebUIPort 1
 
 Add-Type @"
     using System.Net;
@@ -229,7 +232,7 @@ while ($UIRESP.StatusCode -ne 200) {
 	}
 }
 
-Test-WebUIPort 1
+Test-WebUIPort 2
 
 function Get-ErrorMessage {
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
