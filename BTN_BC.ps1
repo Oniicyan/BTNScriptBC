@@ -160,9 +160,9 @@ APPSEC = $APPSEC
 
 # 启动信息
 
-Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor DarkCyan
+Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
-Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor DarkCyan
+Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor Cyan
 
 # 载入用户信息并定义基本变量
 
@@ -200,7 +200,7 @@ function Test-WebUIPort {
 		Start-Sleep 60
 	}
 	if ($FLAG -eq 2) {
-		if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
+		if ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
 			Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
 		} else {
 			Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
@@ -233,7 +233,7 @@ $UIHOME = "http://$UIHOST"
 $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
 while ($UIRESP.StatusCode -ne 200) {
 	try {
-		$UIRESP = Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
+		$UIRESP = Invoke-Webrequest -TimeoutSec 15 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		if ($_ -Match '401') {
@@ -358,13 +358,13 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 提取了一个无法识别的地址：$($Matches[0])] -ForegroundColor Red
+			Write-Host (Get-Date) [ 提取了一个无法识别的 IP 地址：$($Matches[0])] -ForegroundColor Red
 		}
-		$_ -Match '(?<=>)[0-9a-f]{16}' | Out-Null
+		$_ -Match '[0-9a-f]{40}' | Out-Null
 		try {
-			$peer_id = -Join ($Matches[0] -Replace '(..)','[char]0x${0};'| Invoke-Expression)
+			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
 		} catch {
-			Write-Host (Get-Date) [ 提取了一个无法识别的 PeerId：$($Matches[0])] -ForegroundColor Red
+			Write-Host (Get-Date) [ 提取了一个无法识别的 Peer ID：$($Matches[0])] -ForegroundColor Red
 		}
 		$_ -Match '(?<=\d:\d\d:\d\d<\/td><td>).*?(?=<)' | Out-Null
 		if ($Matches[0] -Match 'n/a') {
@@ -515,7 +515,7 @@ while ($True) {
 		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
 		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
 		$NOWCONFIG.ability.reconfigure | Add-Member cmd "Get-BTNConfig"
-		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor DarkCyan
+		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.rules.interval / 1000) 秒查询封禁规则更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
