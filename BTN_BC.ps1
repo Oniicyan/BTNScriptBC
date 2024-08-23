@@ -350,7 +350,7 @@ function Get-TaskPeers {
 		$torrent_size = Invoke-Expression $BIBYTE
 	}
 	$downloader_progress = Get-QuadFloat ([Regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
-	$PEERS -Split '<tr>' | Select-String '[IciC_]{4}' |% {
+	$PEERS -Split '<tr>' | Select-String '>[IciC_]{4}<' |% {
 		if ($_ -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
 			$ip_address = $Matches[0].Split(':')[0]
 			$peer_port = $Matches[0].Split(':')[1]
@@ -358,7 +358,7 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 提取了一个无法识别的 IP 地址：$($Matches[0])] -ForegroundColor Red
+			Write-Host (Get-Date) [ 提取了一个无法识别的 IP 地址：$($Matches[0]) ] -ForegroundColor Red
 		}
 		if ($_ -Match '[0-9a-f]{40}') {
 			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
