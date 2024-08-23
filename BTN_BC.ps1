@@ -1,6 +1,7 @@
 # BTN 服务器与版本信息在此定义
 
 Remove-Variable * -ErrorAction Ignore
+$Host.UI.RawUI.WindowTitle = BTNScriptBC
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
