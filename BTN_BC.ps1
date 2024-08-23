@@ -169,14 +169,22 @@ if ($UIADDR -Match ':') {
 } else {
 	$UIHOST = "${UIADDR}:${UIPORT}"
 }
-$UIHOME = "http://$UIHOST"
-$UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
-Write-Host (Get-Date) [ WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
+Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
 
 function Test-WebUIPort {
+	param($CHECK)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
-		Write-Host (Get-Date) [ BitComet WebUI 未开启，600 秒后重试 ] -ForegroundColor Yellow
-		Start-Sleep 600
+		if (!$CHECK) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
+		$CHECK = 1
+		Start-Sleep 60
+	}
+	if ($CHECK) {
+		if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
+			Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
+		} else {
+			Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
+			exit
+		}
 	}
 }
 
@@ -193,6 +201,8 @@ Add-Type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
+$UIHOME = "http://$UIHOST"
+$UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
 while ($UIRESP.StatusCode -ne 200) {
 	try {
 		$UIRESP = Invoke-Webrequest -TimeoutSec 5 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
@@ -213,19 +223,13 @@ while ($UIRESP.StatusCode -ne 200) {
 			$UIHOME = [String]($UIHOME | Select-String '.*:\d*') + $UIPATH
 		}
 		default {
-			Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 分钟后重试 ] -ForegroundColor Yellow
-			Start-Sleep 600
+			Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 秒后重试 ] -ForegroundColor Yellow
+			Start-Sleep 10
 		}
 	}
 }
 
-
-if ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
-	Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
-} else {
-	Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
-	return
-}
+Test-WebUIPort 1
 
 function Get-ErrorMessage {
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
@@ -262,11 +266,11 @@ function Get-BTNConfig {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
-				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version ] -ForegroundColor Green
+				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version.SubString(0,8) ] -ForegroundColor Green
 			}
 			break
 		} catch {
-			Get-ErrorMessage
+			if ($Error[0]) {Get-ErrorMessage}
 			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
@@ -372,7 +376,7 @@ function Get-TaskPeers {
 function Get-PeersJson {
 	Test-WebUIPort
 	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
-	Write-Host (Get-Date) [ 当前 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 分析 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
 	$SUBMITHASH = @"
 {
 	"populate_time": $([DateTimeOffset]::Now.ToUnixTimeMilliseconds()),
@@ -381,7 +385,7 @@ function Get-PeersJson {
 "@ | ConvertFrom-Json
 	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
 	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
-	Write-Host (Get-Date) [ 分析 $($ACTIVE.Count) 个活动任务，提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 }
 
 $PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
@@ -400,7 +404,7 @@ function Invoke-SumbitPeers {
 		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
-		Get-ErrorMessage
+		if ($Error[0]) {Get-ErrorMessage}
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 提交 Peers 快照失败，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Yellow
 	}
@@ -426,7 +430,7 @@ function Get-BTNRules {
 		}
 		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Green
 	} catch {
-		Get-ErrorMessage
+		if ($Error[0]) {Get-ErrorMessage}
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 更新动态关键字失败，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Yellow
 	}
@@ -441,7 +445,8 @@ while ($True) {
 	) {
 		$NOWCONFIG = $NEWCONFIG
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
-			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds ($NOWCONFIG.ability.$_.interval / 1000)))
+			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
+			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000)))
 		}
 		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
 		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
