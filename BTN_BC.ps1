@@ -360,11 +360,10 @@ function Get-TaskPeers {
 		} else {
 			Write-Host (Get-Date) [ 提取了一个无法识别的 IP 地址：$($Matches[0])] -ForegroundColor Red
 		}
-		$_ -Match '[0-9a-f]{40}' | Out-Null
-		try {
+		if ($_ -Match '[0-9a-f]{40}') {
 			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
-		} catch {
-			Write-Host (Get-Date) [ 提取了一个无法识别的 Peer ID：$($Matches[0])] -ForegroundColor Red
+		} else {
+			$peer_id = ""
 		}
 		$_ -Match '(?<=\d:\d\d:\d\d<\/td><td>).*?(?=<)' | Out-Null
 		if ($Matches[0] -Match 'n/a') {
