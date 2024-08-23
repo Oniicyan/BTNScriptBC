@@ -2,7 +2,6 @@ Remove-Variable * -ErrorAction Ignore
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
-$AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
 
 if ((Fltmc).Count -eq 3) {
 	echo ""
@@ -116,8 +115,8 @@ if (!(Test-Path $INFOPATH)) {
 	echo "  ----------------------------------"
 	echo ""
 	echo "  地址可填写 IPv4、IPv6 或域名"
-	echo "  无需 http:// 或 /panel/ 等 URL 标识"
 	echo "  本机可填写 127.0.0.1 或 localhost"
+	echo "  无需 http:// 或 /panel/ 等 URL 标识"
 	echo ""
 	echo "  WebUI 密码将明文保存至本地文件"
 	echo "  不建议重复使用常用密码"
@@ -150,6 +149,8 @@ APPSEC = $APPSEC
 }
 
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor DarkCyan
+$CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
+Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor DarkCyan
 
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
 if ($USERINFO.Count -eq 6) {
@@ -233,6 +234,8 @@ while ($UIRESP.StatusCode -ne 200) {
 }
 
 Test-WebUIPort 2
+
+$AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
 
 function Get-ErrorMessage {
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
