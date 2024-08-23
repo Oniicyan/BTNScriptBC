@@ -1,7 +1,12 @@
+# BTN 服务器与版本信息在此定义
+
 Remove-Variable * -ErrorAction Ignore
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
+
+# 检测管理员权限与防火墙状态
+# nofw 版不需要
 
 if ((Fltmc).Count -eq 3) {
 	echo ""
@@ -46,10 +51,15 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 	}
 }
 
+# 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
+# 配置目录与动态关键字信息的初始化
+
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
 $INFOPATH = "$ENV:USERPROFILE\BTN_BC\USERINFO.txt"
 $DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+
+# 仅在检测不到 USERINFO.txt 时，执行初始配置
 
 if (!(Test-Path $INFOPATH)) {
 	echo ""
@@ -148,9 +158,13 @@ APPSEC = $APPSEC
 	Clear-Host
 }
 
+# 启动信息
+
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor DarkCyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
 Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor DarkCyan
+
+# 载入用户信息并定义基本变量
 
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
 if ($USERINFO.Count -eq 6) {
@@ -171,6 +185,11 @@ if ($UIADDR -Match ':') {
 	$UIHOST = "${UIADDR}:${UIPORT}"
 }
 Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
+
+# BC WebUI 的生存检测
+# 第一次检测传递参数 1，仅检测端口连通性，在失败时显示一次消息
+# 第二次检测传递参数 2，测试网页是否 BC WebUI，成功与否都显示消息
+# 循环工作时，不提供参数，在端口检测失败时显示一次消息，并在端口连通后测试网页
 
 function Test-WebUIPort {
 	param($FLAG)
@@ -193,6 +212,8 @@ function Test-WebUIPort {
 
 Test-WebUIPort 1
 
+# 允许不安全的证书，考虑 BC WebUI 可能开启强制 HTTPS
+
 Add-Type @"
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -205,6 +226,8 @@ Add-Type @"
     }
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+
+# 获取主页 URL，需要捕获 301 / 302 跳转信息
 
 $UIHOME = "http://$UIHOST"
 $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
@@ -236,7 +259,11 @@ while ($UIRESP.StatusCode -ne 200) {
 
 Test-WebUIPort 2
 
+# 定义基本请求头，不可放在定义基本变量之前
+
 $AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
+
+# 捕获远程服务器的错误响应
 
 function Get-ErrorMessage {
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
@@ -244,6 +271,8 @@ function Get-ErrorMessage {
 	$streamReader.Close()
 	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
 }
+
+# 百分数转小数，精确到小数点后 4 位
 
 function Get-QuadFloat {
 	param ($PERCENT)
@@ -254,6 +283,9 @@ function Get-QuadFloat {
 	}
 	Write-Output $QUADFLOAT
 }
+
+# 从种子特征码计算种子标识符，参照以下链接
+# https://github.com/PBH-BTN/BTN-Spec#torrent-identifier-%E7%AE%97%E6%B3%95
 
 $CRC32 = add-type @"
 [DllImport("ntdll.dll")]
@@ -266,6 +298,8 @@ function Get-SaltedHash {
 	$SALT = $SALT.Substring(6,2) + $SALT.Substring(4,2) + $SALT.Substring(2,2) + $SALT.Substring(0,2)
 	([System.BitConverter]::ToString(([System.Security.Cryptography.HashAlgorithm]::Create('SHA256')).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($INFOHASH + $SALT))) -Replace '-').ToLower()
 }
+
+# 获取 BTN 服务器配置
 
 function Get-BTNConfig {
 	while ($RETRY -lt 3) {
@@ -300,6 +334,8 @@ function Get-BTNConfig {
 	}
 	$Global:NEWCONFIG = $NEWCONFIG
 }
+
+# 获取给定任务的 Peers 信息并记录到哈希表
 
 function Get-TaskPeers {
 	param (
@@ -382,6 +418,9 @@ function Get-TaskPeers {
 	}
 }
 
+# 获取活动任务列表，并调用上述函数传递 URL 参数获取 Peers 哈希表
+# Peers 哈希表转换为 JSON 保存
+
 function Get-PeersJson {
 	Test-WebUIPort
 	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
@@ -396,6 +435,8 @@ function Get-PeersJson {
 	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 }
+
+# JSON 打包为 Gzip 并提交至 BTN 服务器
 
 $PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
 $PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
@@ -419,6 +460,8 @@ function Invoke-SumbitPeers {
 	}
 	Remove-Item $PEERSGZIP
 }
+
+# 更新动态关键字
 
 $RULESJSON = "$ENV:USERPROFILE\BTN_BC\RULES.json"
 $BTNIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
@@ -444,6 +487,14 @@ function Get-BTNRules {
 		Write-Host (Get-Date) [ 更新动态关键字失败，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Yellow
 	}
 }
+
+# 首次启动时，先获取 BTN 服务器配置，并添加下次执行时间
+# 遵守 BTN 规范的首次随机延迟要求
+# 以下循环工作流程
+# 1. 按照下次执行时间排列任务
+# 2. 等待并执行最近的一个（排列的首位）任务
+# 3. 执行完成后，安排下次时间，回到 1.
+# 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 
 while ($True) {
 	if (!$NOWCONFIG) {Get-BTNConfig}
