@@ -343,6 +343,7 @@ function Get-TaskPeers {
 		$SUMMARY,
 		$PEERS
 	)
+	$UNKNOWN = 0
 	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
 	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
 	if ($BIBYTE -Match '\dB') {
@@ -359,7 +360,8 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 提取了一个无法识别的 IP 地址：$($Matches[0]) ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 记录到无法识别的 IP 地址，请确认 UNKNOWN.json ] -ForegroundColor Red
+			$UNKNOWN = 1
 		}
 		if ($_ -Match '[0-9a-f]{40}') {
 			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
@@ -418,7 +420,10 @@ function Get-TaskPeers {
 			downloader_progress = [decimal]$downloader_progress
 			peer_flag = $peer_flag -Replace ' $'
 		}
-		$SUBMITHASH.peers += $PEERHASH
+		switch ($UNKNOWN) {
+			0 {$SUBMITHASH.peers += $PEERHASH}
+			1 {$PEERHASH | ConvertTo-Json | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.json}
+		}
 	}
 }
 
