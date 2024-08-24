@@ -267,10 +267,13 @@ $AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"
 # 捕获远程服务器的错误响应
 
 function Get-ErrorMessage {
-	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
-	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
-	$streamReader.Close()
-	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
+	try {
+		$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
+		$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+		$streamReader.Close()
+	} finally {
+		if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
+	}
 }
 
 # 百分数转小数，精确到小数点后 4 位
@@ -312,7 +315,7 @@ function Get-BTNConfig {
 			}
 			break
 		} catch {
-			if ($Error[0]) {Get-ErrorMessage}
+			Get-ErrorMessage
 			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
@@ -360,7 +363,7 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 记录到无法识别的 IP 地址，请确认 UNKNOWN.json ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 提取到无法识别的 IP 地址 ] -ForegroundColor Yellow
 			$UNKNOWN = 1
 		}
 		if ($_ -Match '[0-9a-f]{40}') {
@@ -463,7 +466,7 @@ function Invoke-SumbitPeers {
 		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
-		if ($Error[0]) {Get-ErrorMessage}
+		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 提交 Peers 快照失败，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Yellow
 	}
@@ -491,7 +494,7 @@ function Get-BTNRules {
 		}
 		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Green
 	} catch {
-		if ($Error[0]) {Get-ErrorMessage}
+		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 更新动态关键字失败，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Yellow
 	}
