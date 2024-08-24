@@ -126,7 +126,7 @@ if (!(Test-Path $INFOPATH)) {
 	echo "  ----------------------------------"
 	echo ""
 	echo "  地址可填写 IPv4、IPv6 或域名"
-	echo "  本机可填写 127.0.0.1 或 localhost"
+	echo "  本机可填写 127.0.0.1，::1 或 localhost"
 	echo "  无需 http:// 或 /panel/ 等 URL 标识"
 	echo ""
 	echo "  WebUI 密码将明文保存至本地文件"
@@ -362,7 +362,7 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 该 Peer 无法识别 IP 地址，记录到 UNKNOWN.txt ] -ForegroundColor Yellow
+			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
 			$_ | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
 			return
 		}
