@@ -346,7 +346,6 @@ function Get-TaskPeers {
 		$SUMMARY,
 		$PEERS
 	)
-	$UNKNOWN = 0
 	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
 	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
 	if ($BIBYTE -Match '\dB') {
@@ -363,24 +362,18 @@ function Get-TaskPeers {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
-			Write-Host (Get-Date) [ 提取到无法识别的 IP 地址 ] -ForegroundColor Yellow
-			$ip_address = $_
-			$UNKNOWN = 1
+			Write-Host (Get-Date) [ 该 Peer 无法识别 IP 地址，记录到 UNKNOWN.txt ] -ForegroundColor Yellow
+			$_ | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
+			return
 		}
-		if ($UNKNOWN -ne 1) {
-			if ($ip_address -Match '\.') {
-				switch -Regex ($ip_address) {
-					'^10\.' {return}
-					'^172\.(1[6-9]|2[0-9]|3[01])\.' {return}
-					'^192\.168\.' {return}
-					'^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' {return}
-					'^127\.' {return}
-				}
-			}
-			if ($ip_address -Match '^f[cde]..:') {
-				return
-			}
+		switch -Regex ($ip_address) {
+			'^10\.' {return}
+			'^172\.(1[6-9]|2[0-9]|3[01])\.' {return}
+			'^192\.168\.' {return}
+			'^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' {return}
+			'^127\.' {return}
 		}
+		if ($ip_address -Match '^f[cde]..:') {return}
 		if ($_ -Match '[0-9a-f]{40}') {
 			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
 		} else {
@@ -438,10 +431,7 @@ function Get-TaskPeers {
 			downloader_progress = [decimal]$downloader_progress
 			peer_flag = $peer_flag -Replace ' $'
 		}
-		switch ($UNKNOWN) {
-			0 {$SUBMITHASH.peers += $PEERHASH}
-			1 {$PEERHASH | ConvertTo-Json | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.json}
-		}
+		$SUBMITHASH.peers += $PEERHASH
 	}
 }
 
