@@ -559,11 +559,11 @@ function Get-BTNRules {
 		}
 		$VERSION = ([Regex]::Matches(((Get-Content $RULESJSON) | Select-String 'version'),'[0-9a-f]{8}')).Value
 		Write-Host (Get-Date) [ 更新 BTN 封禁规则成功，当前版本 ${VERSION}，共 $((Get-Content $BTNIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
-		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ($ADDRESS -Split ',').Count 条 IP 规则 ] -ForegroundColor Green
+		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条 IP 规则 ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 更新 BTN 封禁规则失败，当前共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 更新 BTN 封禁规则失败，共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
 
@@ -585,11 +585,11 @@ function Get-IPList {
 			New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses $ADDRESS | Out-Null
 		}
 		Write-Host (Get-Date) [ 更新 IP 黑名单成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
-		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ($ADDRESS -Split ',').Count 条 IP 规则 ] -ForegroundColor Green
+		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条 IP 规则 ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 更新 IP 黑名单失败，当前共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 更新 IP 黑名单失败，共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
 
@@ -601,6 +601,7 @@ function Get-IPList {
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 while ($True) {
+	$Host.UI.RawUI.WindowTitle = "BTNScriptBC - $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条 IP 规则"
 	[System.GC]::Collect()
 	if (!$NOWCONFIG) {Get-BTNConfig}
 	if (
@@ -622,7 +623,7 @@ while ($True) {
 		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.rules.interval / 1000) 秒查询 BTN 封禁规则更新 ] -ForegroundColor Cyan
-  		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询 IP 黑名单订阅更新 ] -ForegroundColor Cyan
+		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询 IP 黑名单订阅更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
 	}
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
