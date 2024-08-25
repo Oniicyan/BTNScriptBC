@@ -129,7 +129,7 @@ function Invoke-Setup {
 	echo ""
 	echo "  BTN_IPLIST"
 	echo ""
-	echo "  成功配置以下自启动任务计划"
+	echo "  已配置以下自启动任务计划"
 	echo ""
 	echo "  BTN_BC_STARTUP"
 	echo ""
