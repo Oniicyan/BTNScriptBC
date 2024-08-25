@@ -10,7 +10,7 @@
 
 启动获取 BTN 服务器配置后，遵循要求的间隔与首次延迟，计划并循环执行任务。
 
-Peers 快照通过 BitCOmet WebUI 提取并分析，封装后提交。
+Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 支持目前规范中的所有字段，其中 [Flag](https://github.com/PBH-BTN/quick-references/blob/main/utp_flags.md) 替换为 qBittorrent 格式，可识别 `d D u U K ? I`
 
