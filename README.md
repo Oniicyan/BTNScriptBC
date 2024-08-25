@@ -21,7 +21,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 # 使用方法
 
-请先从以下链接创建 BTN 用户应用程序
+请先从以下链接创建 BTN 用户应用程序，记下 AppId 与 AppSecret
 
 https://btn-prod.ghostchu-services.top/
 
