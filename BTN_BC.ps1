@@ -227,6 +227,7 @@ $Main_Tool_Icon.Add_Click({
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
 Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor Cyan
+Write-Host (Get-Date) [ 点击通知区域图标以显示／隐藏窗口 ] -ForegroundColor Cyan
 
 # 载入用户信息并定义基本变量
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
