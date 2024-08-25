@@ -1,6 +1,6 @@
 # 介绍
 
-针对 [BitComet](https://www.bitcomet.com/en/archive) 的 BTN 兼容客户端，遵循 [BTN-Spec](https://github.com/PBH-BTN/BTN-Spec)
+针对 [BitComet](https://www.bitcomet.com/en/archive) 的外挂脚本，作为 BTN 兼容客户端，遵循 [BTN-Spec](https://github.com/PBH-BTN/BTN-Spec)
 
 支持的功能为
 
