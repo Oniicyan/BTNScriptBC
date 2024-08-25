@@ -1,11 +1,10 @@
 # BTN 服务器与版本信息在此定义
-# 删除 $IPLISTURL 可跳过更新订阅规则
 Remove-Variable * -ErrorAction Ignore
 $Host.UI.RawUI.WindowTitle = "BTNScriptBC"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
-$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
+$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
 
 # 检测管理员权限与防火墙状态
 # nofw 版初始配置时需要
@@ -571,8 +570,7 @@ function Get-BTNRules {
 # 更新订阅规则
 $ALLIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
 function Get-IPList {
-	if (!$IPLISTURL) {return}
-	tyr {
+	try {
 		$NEWIPLIST = Invoke-RestMethod -TimeoutSec 30 $IPLISTURL
 		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST).Count) {return}
 		$NEWIPLIST | Out-File $ALLIPLIST
@@ -611,11 +609,9 @@ while ($True) {
 		$NOWCONFIG.ability.reconfigure.interval -ne $NEWCONFIG.ability.reconfigure.interval
 	) {
 		$NOWCONFIG = $NEWCONFIG
-		if ($IPLISTURL) {
-			$NOWCONFIG.ability | Add-Member iplist @{}
-			$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
-			$NOWCONFIG.ability.iplist | Add-Member interval 3600000
-		}
+		$NOWCONFIG.ability | Add-Member iplist @{}
+		$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
+		$NOWCONFIG.ability.iplist | Add-Member interval 3600000
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
 			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000)))
@@ -627,7 +623,7 @@ while ($True) {
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.rules.interval / 1000) 秒查询 BTN 封禁规则更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
-		if ($IPLISTURL) {Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询订阅规则更新 ] -ForegroundColor Cyan}
+		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询订阅规则更新 ] -ForegroundColor Cyan
 	}
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if ($JOBLIST[0].cmd) {
