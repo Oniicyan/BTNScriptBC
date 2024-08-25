@@ -126,7 +126,7 @@ $Main_Tool_Icon.Text = "BTNScriptBC"
 $Main_Tool_Icon.Icon = $ICON
 $Main_Tool_Icon.Visible = $True
 
-# 通知区域按钮
+# 通知区域按键
 try {
 	$CID = [Regex]::Matches(((quser) -Match '^>'),'(?<= )\d+(?= )').Value
 } catch {
@@ -210,7 +210,7 @@ Add-Type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
-# 获取主页 URL，需要捕获 301 / 302 跳转信息
+# 获取主页 URL，需要捕获 301 / 302 重定向信息
 $UIHOME = "http://$UIHOST"
 $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER,($UIPASS))
 while ($UIRESP.StatusCode -ne 200) {
