@@ -45,7 +45,7 @@ function Invoke-Setup {
 	Unregister-ScheduledTask BTN_BC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTN_BC_NOFW_STARTUP -InputObject $TASK | Out-Null
 	echo ""
-	echo "  成功配置以下自启动任务计划"
+	echo "  已配置以下自启动任务计划"
 	echo ""
 	echo "  BTN_BC_NOFW_STARTUP"
 	echo ""
