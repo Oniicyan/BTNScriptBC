@@ -572,7 +572,7 @@ $ALLIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
 function Get-IPList {
 	try {
 		$NEWIPLIST = Invoke-RestMethod -TimeoutSec 30 $IPLISTURL
-		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST).Count) {return}
+		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST -ErrorAction Ignore).Count) {return}
 		$NEWIPLIST | Out-File $ALLIPLIST
 		if (Test-Path $BTNIPLIST) {
 			$ADDRESS = ((Get-Content $ALLIPLIST) + (Get-Content $BTNIPLIST)) -Join ','
