@@ -1,5 +1,4 @@
 # BTN 服务器与版本信息在此定义
-
 Remove-Variable * -ErrorAction Ignore
 $Host.UI.RawUI.WindowTitle = "BTNScriptBC"
 $Global:ProgressPreference = "SilentlyContinue"
@@ -7,8 +6,7 @@ $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
 
 # 检测管理员权限与防火墙状态
-# nofw 版不需要
-
+# nofw 版初始配置时需要
 if ((Fltmc).Count -eq 3) {
 	echo ""
 	echo "  请以管理员权限执行"
@@ -52,17 +50,11 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 	}
 }
 
+# 初始配置
 # 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
-# 配置目录与动态关键字信息的初始化
-
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
-New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
-$INFOPATH = "$ENV:USERPROFILE\BTN_BC\USERINFO.txt"
-$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
-
-# 仅在检测不到 USERINFO.txt 时，执行初始配置
-
-if (!(Test-Path $INFOPATH)) {
+function Invoke-Setup {
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
+	New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
 	echo ""
 	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
 	echo ""
@@ -92,7 +84,7 @@ if (!(Test-Path $INFOPATH)) {
 	echo ""
 	echo "  过滤规则仅对选中的程序生效，不影响其他程序的通信"
 	echo ""
-	echo "  如需为多个程序启用过滤规则，请在完成配置后执行以下命令"
+	echo "  如需为多个程序启用过滤规则，请在完成配置后另外执行以下命令"
 	echo ""
 	echo "  iex (irm btn-bc.pages.dev/add)"
 	echo ""
@@ -105,21 +97,40 @@ if (!(Test-Path $INFOPATH)) {
 	Add-Type -AssemblyName System.Windows.Forms
 	$BTINFO = New-Object System.Windows.Forms.OpenFileDialog -Property @{InitialDirectory = [Environment]::GetFolderPath('Desktop')}
 	$BTINFO.ShowDialog() | Out-Null
+	if (!$BTINFO.FileName) {
+		echo ""
+		echo "  未选择文件"
+		echo ""
+		echo "  请重新执行脚本，并正确选择 BT 应用程序"
+		echo ""
+		exit
+	}
 	$BTPATH = $BTINFO.FileName
 	$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
 	Remove-NetFirewallRule -DisplayName "BTN_$BTNAME" -ErrorAction Ignore
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest
+	$SETTINGS = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
+	$TRIGGER = New-ScheduledTaskTrigger -AtStartup
+	$ACTION = New-ScheduledTaskAction -Execute "powershell" -Argument "iex (irm btn-bc.pages.dev)"
+	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
+	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTN_BC_STARTUP -InputObject $TASK | Out-Null
 	echo ""
 	echo "  程序路径为：$BTPATH"
 	echo ""
 	echo "  已配置以下过滤规则"
 	echo ""
-	Get-NetFirewallRule -DisplayName BTN_* | Select-Object -Property Displayname, Direction | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
+	Get-NetFirewallRule -DisplayName BTN_* | Select-Object -Property Displayname,Direction | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
 	echo ""
 	echo "  已配置以下动态关键字"
 	echo ""
 	echo "  BTN_IPLIST"
+	echo ""
+	echo "  成功配置以下自启动任务计划"
+	echo ""
+	echo "  BTN_BC_STARTUP"
 	echo ""
 	echo "  ----------------------------------"
 	echo "  请填写用户信息（点击鼠标右键粘贴）"
@@ -149,24 +160,75 @@ APPSEC = $APPSEC
 	echo ""
 	echo "  用户信息已保存至 $INFOPATH"
 	echo ""
-	echo "  如有需要，可编辑或删除用户信息"
+	echo "  可直接编辑用户信息，也或删除以重新配置"
 	echo ""
 	echo "  ------------------------------"
 	echo "  初始配置完成，脚本即将开始工作"
 	echo "  ------------------------------"
 	echo ""
-	pause
+	Write-Host "  脚本开始工作后" -ForegroundColor Green
+	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口" -ForegroundColor Green
+	echo ""
+	Write-Host "  关闭脚本后，可再次执行同样的命令以继续" -ForegroundColor Green
+	echo ""
+	timeout 120
 	Clear-Host
 }
 
-# 启动信息
+# 用户配置与动态关键字信息的初始化
+# 仅在检测不到 USERINFO.txt 时，执行初始配置
+$INFOPATH = "$ENV:USERPROFILE\BTN_BC\USERINFO.txt"
+$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+if (!(Test-Path $INFOPATH)) {
+	$SETUP = 1
+	Invoke-Setup
+}
 
+# 隐藏窗口
+$ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
+$ShowWindowAsync = Add-Type -MemberDefinition $ShowWindowAsyncCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+$Host.UI.RawUI.WindowTitle = "BTNScriptBC"
+$hwnd = (Get-Process -PID $PID).MainWindowHandle
+if ($hwnd -eq [System.IntPtr]::Zero) {
+	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq "BTNScriptBC"}
+	$hwnd = $TerminalProcess.MainWindowHandle
+}
+if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
+
+# 通知区域图标
+[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('presentationframework') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('System.Drawing') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName('WindowsFormsIntegration') | Out-Null
+$ICON = [System.Drawing.Icon]::ExtractAssociatedIcon("C:\Windows\System32\EaseOfAccessDialog.exe")
+$Main_Tool_Icon = New-Object System.Windows.Forms.NotifyIcon
+$Main_Tool_Icon.Text = "BTNScriptBC"
+$Main_Tool_Icon.Icon = $ICON
+$Main_Tool_Icon.Visible = $True
+
+# 通知区域按钮
+try {
+	$CID = [Regex]::Matches(((quser) -Match '^>'),'(?<= )\d+(?= )').Value
+} catch {
+	$CID = 1
+}
+$Main_Tool_Icon.Add_Click({
+	if ($Global:SWITCH -ne 1) {
+		$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
+		$Global:SWITCH = 1
+	} else {
+		$ShowWindowAsync::ShowWindowAsync($hwnd,0)
+		$Global:SWITCH = 0
+	}
+})
+[System.GC]::Collect()
+
+# 启动信息
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
 Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor Cyan
 
 # 载入用户信息并定义基本变量
-
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
 if ($USERINFO.Count -eq 6) {
 	Write-Host (Get-Date) [ 用户信息载入成功 ] -ForegroundColor Green
@@ -191,13 +253,13 @@ Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColo
 # 第一次检测传递参数 1，仅检测端口连通性，在失败时显示一次消息
 # 第二次检测传递参数 2，测试网页是否 BC WebUI，成功与否都显示消息
 # 循环工作时，不提供参数，在端口检测失败时显示一次消息，并在端口连通后测试网页
-
 function Test-WebUIPort {
 	param($FLAG)
 	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
 		if ((!$FLAG) -or ($FLAG -eq 1)) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
 		if (!$FLAG) {$FLAG = 2}
 		if ($FLAG -eq 1) {$FLAG = 3}
+		[System.GC]::Collect()
 		Start-Sleep 60
 	}
 	if ($FLAG -eq 2) {
@@ -214,7 +276,6 @@ function Test-WebUIPort {
 Test-WebUIPort 1
 
 # 允许不安全的证书，考虑 BC WebUI 可能开启强制 HTTPS
-
 Add-Type @"
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -229,9 +290,8 @@ Add-Type @"
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
 # 获取主页 URL，需要捕获 301 / 302 跳转信息
-
 $UIHOME = "http://$UIHOST"
-$UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER, ($UIPASS))
+$UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER,($UIPASS))
 while ($UIRESP.StatusCode -ne 200) {
 	try {
 		$UIRESP = Invoke-Webrequest -TimeoutSec 15 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
@@ -261,23 +321,18 @@ while ($UIRESP.StatusCode -ne 200) {
 Test-WebUIPort 2
 
 # 定义基本请求头，不可放在定义基本变量之前
-
 $AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
 
 # 捕获远程服务器的错误响应
-
 function Get-ErrorMessage {
-	try {
-		$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
-		$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
-		$streamReader.Close()
-	} finally {
-		if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
-	}
+	if (!$Error[0]) {return}
+	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
+	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+	$streamReader.Close()
+	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
 }
 
 # 百分数转小数，精确到小数点后 4 位
-
 function Get-QuadFloat {
 	param ($PERCENT)
 	if ($PERCENT -Match '100%') {
@@ -289,8 +344,6 @@ function Get-QuadFloat {
 }
 
 # 从种子特征码计算种子标识符，参照以下链接
-# https://github.com/PBH-BTN/BTN-Spec#torrent-identifier-%E7%AE%97%E6%B3%95
-
 $CRC32 = add-type @"
 [DllImport("ntdll.dll")]
 public static extern uint RtlComputeCrc32(uint dwInitial, byte[] pData, int iLen);
@@ -298,19 +351,18 @@ public static extern uint RtlComputeCrc32(uint dwInitial, byte[] pData, int iLen
 function Get-SaltedHash {
 	param ($INFOHASH)
 	$BYTE = [System.Text.Encoding]::UTF8.GetBytes($INFOHASH.ToLower())
-	$SALT = ($CRC32::RtlComputeCrc32(0, $BYTE, $BYTE.Count)).ToString("x8")
+	$SALT = ($CRC32::RtlComputeCrc32(0,$BYTE,$BYTE.Count)).ToString("x8")
 	$SALT = $SALT.Substring(6,2) + $SALT.Substring(4,2) + $SALT.Substring(2,2) + $SALT.Substring(0,2)
 	([System.BitConverter]::ToString(([System.Security.Cryptography.HashAlgorithm]::Create('SHA256')).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($INFOHASH + $SALT))) -Replace '-').ToLower()
 }
 
 # 获取 BTN 服务器配置
-
 function Get-BTNConfig {
 	while ($RETRY -lt 3) {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
-			$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
+				$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version.SubString(0,8) ] -ForegroundColor Green
 			}
 			break
@@ -329,6 +381,7 @@ function Get-BTNConfig {
 	}
 	if ($RETRY -ge 3) {
 		if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
+			$NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
 			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
 		} else {
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
@@ -340,7 +393,6 @@ function Get-BTNConfig {
 }
 
 # 获取给定任务的 Peers 信息并记录到哈希表
-
 function Get-TaskPeers {
 	param (
 		$SUMMARY,
@@ -437,7 +489,6 @@ function Get-TaskPeers {
 
 # 获取活动任务列表，并调用上述函数传递 URL 参数获取 Peers 哈希表
 # Peers 哈希表转换为 JSON 保存
-
 function Get-PeersJson {
 	Test-WebUIPort
 	$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
@@ -454,7 +505,6 @@ function Get-PeersJson {
 }
 
 # JSON 打包为 Gzip 并提交至 BTN 服务器
-
 $PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
 $PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
 function Invoke-SumbitPeers {
@@ -479,7 +529,6 @@ function Invoke-SumbitPeers {
 }
 
 # 更新动态关键字
-
 $RULESJSON = "$ENV:USERPROFILE\BTN_BC\RULES.json"
 $BTNIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
 function Get-BTNRules {
@@ -495,13 +544,14 @@ function Get-BTNRules {
 		if (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore) {
 			Update-NetFirewallDynamicKeywordAddress -Id $DYKWID -Addresses ((Get-Content $BTNIPLIST) -Join ',') | Out-Null
 		} else {
-		New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses ((Get-Content $BTNIPLIST) -Join ',') | Out-Null
+			New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses ((Get-Content $BTNIPLIST) -Join ',') | Out-Null
 		}
-		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Green
+		$VERSION = ([Regex]::Matches(((Get-Content $RULESJSON) | Select-String 'version'),'[0-9a-f]{8}')).Value
+		Write-Host (Get-Date) [ 更新动态关键字成功，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则，版本 $VERSION ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 更新动态关键字失败，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 更新动态关键字失败，当前共 ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count 条 IP 规则，版本 $VERSION ] -ForegroundColor Yellow
 	}
 }
 
@@ -512,8 +562,8 @@ function Get-BTNRules {
 # 2. 等待并执行最近的一个（排列的首位）任务
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
-
 while ($True) {
+	[System.GC]::Collect()
 	if (!$NOWCONFIG) {Get-BTNConfig}
 	if (
 		$NOWCONFIG.ability.submit_peers.interval -ne $NEWCONFIG.ability.submit_peers.interval -or
