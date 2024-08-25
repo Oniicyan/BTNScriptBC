@@ -601,7 +601,7 @@ function Get-IPList {
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 while ($True) {
-	$Host.UI.RawUI.WindowTitle = "BTNScriptBC - $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条 IP 规则"
+	$Host.UI.RawUI.WindowTitle = "BTNScriptBC - 共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条 IP 规则"
 	[System.GC]::Collect()
 	if (!$NOWCONFIG) {Get-BTNConfig}
 	if (
