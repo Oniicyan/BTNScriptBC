@@ -6,7 +6,8 @@
 
 1. 获取 BTN 服务器配置
 2. 提交 Peers 快照
-3. 获取 BTN 封禁规则
+3. 更新 BTN 封禁规则
+4. 订阅 IP 黑名单
 
 启动获取 BTN 服务器配置后，遵循要求的间隔与首次延迟，计划并循环执行任务。
 
@@ -16,7 +17,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 支持 IP 形式的封禁规则，使用 Windows 防火墙配合 [动态关键字](https://learn.microsoft.com/zh-cn/windows/security/operating-system-security/network-security/windows-firewall/dynamic-keywords) 以实现封禁。
 
-可与 [IP 段封禁脚本](https://github.com/Oniicyan/BT_BAN) 配合使用，目前两者为互补关系。
+自动订阅 IP 黑名单（[combine/all.txt](https://github.com/PBH-BTN/BTN-Collected-Rules/blob/main/combine/all.txt)）
 
 # 使用方法
 
