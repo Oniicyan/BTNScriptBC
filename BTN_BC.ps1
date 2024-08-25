@@ -349,7 +349,7 @@ function Get-QuadFloat {
 	Write-Output $QUADFLOAT
 }
 
-# 从种子特征码计算种子标识符，参照以下链接
+# 从种子特征码计算种子标识符
 $CRC32 = add-type @"
 [DllImport("ntdll.dll")]
 public static extern uint RtlComputeCrc32(uint dwInitial, byte[] pData, int iLen);
