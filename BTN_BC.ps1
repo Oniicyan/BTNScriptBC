@@ -329,6 +329,7 @@ Test-WebUIPort 2
 
 # 捕获远程服务器的错误响应
 function Get-ErrorMessage {
+	if (!$Error[0].Exception.Response) {return}
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
 	try {
 		$streamReader.ReadToEnd() | ConvertFrom-Json
