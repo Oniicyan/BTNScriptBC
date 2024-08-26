@@ -207,15 +207,15 @@ Test-WebUIPort 1
 
 # 允许不安全的证书，考虑 BC WebUI 可能开启强制 HTTPS
 Add-Type @"
-    using System.Net;
-    using System.Security.Cryptography.X509Certificates;
-    public class TrustAllCertsPolicy : ICertificatePolicy {
-        public bool CheckValidationResult(
-            ServicePoint srvPoint, X509Certificate certificate,
-            WebRequest request, int certificateProblem) {
-            return true;
-        }
-    }
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+public class TrustAllCertsPolicy : ICertificatePolicy {
+	public bool CheckValidationResult(
+		ServicePoint srvPoint, X509Certificate certificate,
+		WebRequest request, int certificateProblem) {
+		return true;
+	}
+}
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
