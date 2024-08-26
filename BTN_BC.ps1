@@ -603,7 +603,7 @@ function Get-IPList {
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 $IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
 while ($True) {
-	if ($IPCOUNT) {$Global:Host.UI.RawUI.WindowTitle = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
+	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
 	[System.GC]::Collect()
 	if (!$NOWCONFIG) {Get-BTNConfig}
 	if (
@@ -615,9 +615,10 @@ while ($True) {
 		$NOWCONFIG.ability | Add-Member iplist @{}
 		$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
 		$NOWCONFIG.ability.iplist | Add-Member interval 3600000
+		$NOWCONFIG.ability.iplist | Add-Member next 0
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
-			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000)))
+			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000))) -ErrorAction Ignore
 		}
 		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
 		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
