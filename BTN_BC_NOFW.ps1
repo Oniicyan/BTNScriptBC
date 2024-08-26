@@ -1,6 +1,6 @@
 # BTN 服务器与版本信息在此定义
 Remove-Variable * -ErrorAction Ignore
-$Host.UI.RawUI.WindowTitle = "BTNScriptBC"
+$Host.UI.RawUI.WindowTitle = "BTNScriptBC - nofw"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
@@ -107,7 +107,6 @@ if (!(Test-Path $INFOPATH)) {
 # 隐藏窗口
 $ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
 $ShowWindowAsync = Add-Type -MemberDefinition $ShowWindowAsyncCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
-$Host.UI.RawUI.WindowTitle = "BTNScriptBC"
 $hwnd = (Get-Process -PID $PID).MainWindowHandle
 if ($hwnd -eq [System.IntPtr]::Zero) {
 	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq "BTNScriptBC"}
