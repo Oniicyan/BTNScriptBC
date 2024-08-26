@@ -5,19 +5,27 @@ $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/7.0.0"
 
-# 检测管理员权限与防火墙状态
-# nofw 版初始配置时需要
-if ((Fltmc).Count -eq 3) {
-	echo ""
-	echo "  请以管理员权限执行"
-	echo ""
-	return
+# 检测 IE 引擎是否可用
+# 不可用时提示以管理员权限执行
+try {
+	iwr baidu.com | Out-Null
+} catch {
+	if ($_ -Match 'Internet Explorer') {
+		if ((Fltmc).Count -eq 3) {
+			echo ""
+			echo "  当前 IE 引擎不可用"
+			echo ""
+			echo "  请以管理员权限执行，以绕过 IE 初始检测"
+			echo ""
+			return
+		} else {
+			Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
+		}
+	}
 }
 
 # 初始配置
-# 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 	New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
 	echo ""
 	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
