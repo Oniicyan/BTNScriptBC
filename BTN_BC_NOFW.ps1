@@ -134,6 +134,15 @@ $Main_Tool_Icon.Icon = $ICON
 $Main_Tool_Icon.Visible = $True
 
 # 通知区域按键
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Tricks {
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+"@
 try {
 	$CID = [Regex]::Matches(((quser) -Match '^>'),'(?<= )\d+(?= )').Value
 } catch {
@@ -141,6 +150,7 @@ try {
 }
 $Main_Tool_Icon.Add_Click({
 	if ($Global:SWITCH -ne 1) {
+		[Tricks]::SetForegroundWindow($hwnd)
 		$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
 		$Global:SWITCH = 1
 	} else {
