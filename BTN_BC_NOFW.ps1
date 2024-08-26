@@ -3,7 +3,7 @@ Remove-Variable * -ErrorAction Ignore
 $Host.UI.RawUI.WindowTitle = "BTNScriptBC - nofw"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
-$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.0-dev BTN-Protocol/0.0.0-dev"
+$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/7.0.0"
 
 # 检测管理员权限与防火墙状态
 # nofw 版初始配置时需要
