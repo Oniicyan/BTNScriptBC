@@ -568,7 +568,7 @@ function Get-BTNRules {
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Get-ErrorMessage
-		Write-Host (Get-Date) [ 更新 BTN 封禁规则失败，共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 更新 BTN 封禁规则失败，当前共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
 
@@ -595,7 +595,7 @@ function Get-IPList {
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Get-ErrorMessage
-		Write-Host (Get-Date) [ 更新 IP 黑名单失败，共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 更新 IP 黑名单失败，当前共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
 
