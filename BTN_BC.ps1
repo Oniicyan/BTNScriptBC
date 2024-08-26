@@ -608,7 +608,10 @@ $IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split 
 while ($True) {
 	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
 	[System.GC]::Collect()
-	if (!$NOWCONFIG) {Get-BTNConfig}
+	if (!$NOWCONFIG) {
+		Get-IPList
+		Get-BTNConfig
+	}
 	if (
 		$NOWCONFIG.ability.submit_peers.interval -ne $NEWCONFIG.ability.submit_peers.interval -or
 		$NOWCONFIG.ability.rules.interval -ne $NEWCONFIG.ability.rules.interval -or
@@ -618,7 +621,6 @@ while ($True) {
 		$NOWCONFIG.ability | Add-Member iplist @{}
 		$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
 		$NOWCONFIG.ability.iplist | Add-Member interval 3600000
-		$NOWCONFIG.ability.iplist | Add-Member next 0
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
 			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000))) -ErrorAction Ignore
