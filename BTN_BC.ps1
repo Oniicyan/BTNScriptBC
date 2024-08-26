@@ -225,6 +225,7 @@ $Main_Tool_Icon.Add_Click({
 		$Global:SWITCH = 0
 	}
 })
+
 [System.GC]::Collect()
 
 # 启动信息
@@ -252,6 +253,7 @@ if ($UIADDR -Match ':') {
 } else {
 	$UIHOST = "${UIADDR}:${UIPORT}"
 }
+$AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
 Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColor Cyan
 
 # BC WebUI 的生存检测
@@ -325,19 +327,19 @@ while ($UIRESP.StatusCode -ne 200) {
 
 Test-WebUIPort 2
 
-# 定义基本请求头，不可放在定义基本变量之前
-$AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"; "X-BTN-AppSecret"="$APPSEC"}
-
 # 捕获远程服务器的错误响应
 function Get-ErrorMessage {
-	if (!$Error[0]) {return}
+	if (!$Error[0].Exception.Response) {return}
+	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
 	try {
-		$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
-		$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+		$streamReader.ReadToEnd() | ConvertFrom-Json
+	} catch {
 		$streamReader.Close()
-	} finally {
-		if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
+		return
 	}
+	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+	$streamReader.Close()
+	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
 }
 
 # 百分数转小数，精确到小数点后 4 位
@@ -375,8 +377,8 @@ function Get-BTNConfig {
 			}
 			break
 		} catch {
-			Get-ErrorMessage
 			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+			Get-ErrorMessage
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
 				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
@@ -529,8 +531,8 @@ function Invoke-SumbitPeers {
 		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
-		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Get-ErrorMessage
 		Write-Host (Get-Date) [ 提交 Peers 快照失败，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Yellow
 	}
 	Remove-Item $PEERSGZIP
@@ -564,8 +566,8 @@ function Get-BTNRules {
 		Write-Host (Get-Date) [ 更新 BTN 封禁规则成功，当前版本 ${VERSION}，共 $((Get-Content $BTNIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
 		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $IPCOUNT 条 IP 规则 ] -ForegroundColor Green
 	} catch {
-		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Get-ErrorMessage
 		Write-Host (Get-Date) [ 更新 BTN 封禁规则失败，共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
@@ -591,8 +593,8 @@ function Get-IPList {
 		Write-Host (Get-Date) [ 更新 IP 黑名单成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
 		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $IPCOUNT 条 IP 规则 ] -ForegroundColor Green
 	} catch {
-		Get-ErrorMessage
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Get-ErrorMessage
 		Write-Host (Get-Date) [ 更新 IP 黑名单失败，共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
