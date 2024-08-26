@@ -8,7 +8,7 @@ $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-
 # 检测 IE 引擎是否可用
 # 不可用时提示以管理员权限执行
 try {
-	iwr baidu.com | Out-Null
+	$null = iwr baidu.com
 } catch {
 	if ($_ -Match 'Internet Explorer') {
 		if ((Fltmc).Count -eq 3) {
