@@ -331,10 +331,13 @@ $AUTHHEADS = @{"Authorization"="Bearer $APPUID@$APPSEC"; "X-BTN-AppID"="$APPUID"
 # 捕获远程服务器的错误响应
 function Get-ErrorMessage {
 	if (!$Error[0]) {return}
-	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
-	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
-	$streamReader.Close()
-	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
+	try {
+		$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
+		$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+		$streamReader.Close()
+	} finally {
+		if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
+	}
 }
 
 # 百分数转小数，精确到小数点后 4 位
