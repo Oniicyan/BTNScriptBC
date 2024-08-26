@@ -211,6 +211,15 @@ $Main_Tool_Icon.Icon = $ICON
 $Main_Tool_Icon.Visible = $True
 
 # 通知区域按键
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Tricks {
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+"@
 try {
 	$CID = [Regex]::Matches(((quser) -Match '^>'),'(?<= )\d+(?= )').Value
 } catch {
@@ -218,6 +227,7 @@ try {
 }
 $Main_Tool_Icon.Add_Click({
 	if ($Global:SWITCH -ne 1) {
+		[Tricks]::SetForegroundWindow($hwnd)
 		$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
 		$Global:SWITCH = 1
 	} else {
@@ -284,15 +294,15 @@ Test-WebUIPort 1
 
 # 允许不安全的证书，考虑 BC WebUI 可能开启强制 HTTPS
 Add-Type @"
-    using System.Net;
-    using System.Security.Cryptography.X509Certificates;
-    public class TrustAllCertsPolicy : ICertificatePolicy {
-        public bool CheckValidationResult(
-            ServicePoint srvPoint, X509Certificate certificate,
-            WebRequest request, int certificateProblem) {
-            return true;
-        }
-    }
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+public class TrustAllCertsPolicy : ICertificatePolicy {
+	public bool CheckValidationResult(
+		ServicePoint srvPoint, X509Certificate certificate,
+		WebRequest request, int certificateProblem) {
+		return true;
+	}
+}
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
