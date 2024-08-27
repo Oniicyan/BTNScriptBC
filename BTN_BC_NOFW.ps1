@@ -46,7 +46,7 @@ function Invoke-Setup {
 	pause
 	Clear-Host
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME
-	$SETTINGS = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
+	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtStartup
 	$ACTION = New-ScheduledTaskAction -Execute "powershell" -Argument "iex (irm btn-bc.pages.dev/nofw)"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
