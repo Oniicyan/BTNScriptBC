@@ -499,7 +499,7 @@ function Get-TaskPeers {
 		$downloaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
 		$uploaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
 		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
-		$BCFLAGS = [Regex]::Matches($_,'[IciC_]{4}').Value
+		$BCFLAGS = [Regex]::Matches(([Regex]::Matches($_,'(?<=[0-9a-f]{40}).*').Value),'[IciC_]{4}').Value
 		$RATESTR = $_ -Replace '(Remote|Local).*'
 		$RATEVAL = [Regex]::Matches($RATESTR,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
 		switch ($RATEVAL.Count) {
@@ -508,7 +508,7 @@ function Get-TaskPeers {
 				$rt_upload_speed = 0
 			}
 			1 {
-				if ($BCFLAGS -Cmatch '..i.') {
+				if ($BCFLAGS -Match '..i.') {
 					$rt_download_speed = 0
 					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 				} else {
