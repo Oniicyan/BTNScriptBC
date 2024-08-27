@@ -213,7 +213,7 @@ Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColo
 # 循环工作时，不提供参数，在端口检测失败时显示一次消息，并在端口连通后测试网页
 function Test-WebUIPort {
 	param($FLAG)
-	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
+	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet -WarningAction SilentlyContinue)) {
 		if ((!$FLAG) -or ($FLAG -eq 1)) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
 		if (!$FLAG) {$FLAG = 2}
 		if ($FLAG -eq 1) {$FLAG = 3}
