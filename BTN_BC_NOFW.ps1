@@ -414,7 +414,11 @@ function Get-TaskPeers {
 			'..i_' {$peer_flag = $peer_flag + 'U '}
 			'..__' {$peer_flag = $peer_flag + '? '}
 		}
-		if ($_ -Match 'Remote') {$peer_flag = $peer_flag + 'I'}
+		if ($_ -Match 'Remote') {
+			$peer_flag = $peer_flag + 'I'
+		} else {
+			$peer_flag = $peer_flag -Replace ' $'
+		}
 		$RATESTR = $_ -Replace '(Remote|Local).*'
 		$RATEVAL = [Regex]::Matches($RATESTR,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
 		switch ($RATEVAL.Count) {
