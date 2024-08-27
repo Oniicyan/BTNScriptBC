@@ -500,6 +500,27 @@ function Get-TaskPeers {
 		$uploaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
 		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
 		$BCFLAGS = [Regex]::Matches($_,'(?<=>)[IciC_]{4}(?=<)').Value
+		$RATESTR = $_ -Replace '(Remote|Local).*'
+		$RATEVAL = [Regex]::Matches($RATESTR,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
+		switch ($RATEVAL.Count) {
+			0 {
+				$rt_download_speed = 0
+				$rt_upload_speed = 0
+			}
+			1 {
+				if ($BCFLAGS -Match '..i.') {
+					$rt_download_speed = 0
+					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+				} else {
+					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+					$rt_upload_speed = 0
+				}
+			}
+			2 {
+				$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+				$rt_upload_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
+			}
+		}
 		$peer_flag = ""
 		switch -Regex ($BCFLAGS) {
 			'Ic..' {$peer_flag = $peer_flag + 'd '}
@@ -511,27 +532,10 @@ function Get-TaskPeers {
 			'..i_' {$peer_flag = $peer_flag + 'U '}
 			'..__' {$peer_flag = $peer_flag + '? '}
 		}
-		if ($_ -Match 'Remote') {$peer_flag = $peer_flag + 'I'}
-		$RATESTR = $_ -Replace '(Remote|Local).*'
-		$RATEVAL = [Regex]::Matches($RATESTR,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
-		switch ($RATEVAL.Count) {
-			0 {
-				$rt_download_speed = 0
-				$rt_upload_speed = 0
-			}
-			1 {
-				if ($peer_flag -Cmatch 'u') {
-					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-					$rt_upload_speed = 0
-				} else {
-					$rt_download_speed = 0
-					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-				}
-			}
-			2 {
-				$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-				$rt_upload_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
-			}
+		if ($_ -Match 'Remote') {
+			$peer_flag = $peer_flag + 'I'
+		} else {
+			$peer_flag = $peer_flag -Replace ' $'
 		}
 		$PEERHASH = @{
 			ip_address = $ip_address
