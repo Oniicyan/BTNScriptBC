@@ -226,14 +226,52 @@ try {
 	$CID = 1
 }
 $Main_Tool_Icon.Add_Click({
-	if ($Global:SWITCH -ne 1) {
-		[Tricks]::SetForegroundWindow($hwnd)
-		$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
-		$Global:SWITCH = 1
-	} else {
-		$ShowWindowAsync::ShowWindowAsync($hwnd,0)
-		$Global:SWITCH = 0
+	switch ($_.Button) {
+		([Windows.Forms.MouseButtons]::Left) {
+			if ($Global:SWITCH -ne 1) {
+				[Tricks]::SetForegroundWindow($hwnd)
+				$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
+				$Global:SWITCH = 1
+			} else {
+				$ShowWindowAsync::ShowWindowAsync($hwnd,0)
+				$Global:SWITCH = 0
+			}
+		}
+		([Windows.Forms.MouseButtons]::Right) {[System.Windows.Forms.SendKeys]::SendWait('^')}
 	}
+})
+
+# 通知区域菜单
+$Menu_Peer = New-Object System.Windows.Forms.MenuItem
+$Menu_Peer.Enabled = $False
+$Menu_Peer.Text = "强制提交快照"
+$Menu_Rule = New-Object System.Windows.Forms.MenuItem
+$Menu_Rule.Enabled = $False
+$Menu_Rule.Text = "强制更新规则"
+$Menu_List = New-Object System.Windows.Forms.MenuItem
+$Menu_List.Enabled = $False
+$Menu_List.Text = "强制更新订阅"
+$Contextmenu = New-Object System.Windows.Forms.ContextMenu
+$Main_Tool_Icon.ContextMenu = $Contextmenu
+$Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Peer)
+$Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Rule)
+$Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_List)
+$Menu_Peer.add_Click({
+	$Global:JOBFLAG = 1
+	$NOWCONFIG.ability.submit_peers.next = 0
+	Get-Job | Stop-Job
+})
+$Menu_Rule.add_Click({
+	$Global:JOBFLAG = 1
+	Remove-Item $RULESJSON -Force
+	$NOWCONFIG.ability.rules.next = 0
+	Get-Job | Stop-Job
+})
+$Menu_List.add_Click({
+	$Global:JOBFLAG = 1
+	Remove-Item $ALLIPLIST -Force
+	$NOWCONFIG.ability.iplist.next = 0
+	Get-Job | Stop-Job
 })
 
 [System.GC]::Collect()
@@ -600,12 +638,12 @@ function Get-IPList {
 			New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses $ADDRESS | Out-Null
 		}
 		$Global:IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
-		Write-Host (Get-Date) [ 更新 IP 黑名单成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
+		Write-Host (Get-Date) [ 更新 IP 黑名单订阅成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
 		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $IPCOUNT 条 IP 规则 ] -ForegroundColor Green
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Get-ErrorMessage
-		Write-Host (Get-Date) [ 更新 IP 黑名单失败，当前共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 更新 IP 黑名单订阅失败，当前共 $(((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count) 条动态关键字规则 ] -ForegroundColor Yellow
 	}
 }
 
@@ -619,10 +657,15 @@ function Get-IPList {
 $IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
 while ($True) {
 	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
+	Get-Job | Remove-Job -Force
+	$Global:JOBFLAG = 0
 	[System.GC]::Collect()
 	if (!$NOWCONFIG) {
 		Get-IPList
 		Get-BTNConfig
+		$Menu_Peer.Enabled = $True
+		$Menu_Rule.Enabled = $True
+		$Menu_List.Enabled = $True
 	}
 	if (
 		$NOWCONFIG.ability.submit_peers.interval -ne $NEWCONFIG.ability.submit_peers.interval -or
@@ -631,7 +674,6 @@ while ($True) {
 	) {
 		$NOWCONFIG = $NEWCONFIG
 		$NOWCONFIG.ability | Add-Member iplist @{}
-		$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
 		$NOWCONFIG.ability.iplist | Add-Member interval 3600000
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
@@ -639,6 +681,7 @@ while ($True) {
 		}
 		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
 		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
+		$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
 		$NOWCONFIG.ability.reconfigure | Add-Member cmd "Get-BTNConfig"
 		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
@@ -648,9 +691,14 @@ while ($True) {
 	}
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if ($JOBLIST[0].cmd) {
-		if ((Get-Date) -lt $JOBLIST[0].next) {Start-Sleep ($JOBLIST[0].next - (Get-Date)).TotalSeconds}
-		Invoke-Expression $JOBLIST[0].cmd
-		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
+		if ((Get-Date) -lt $JOBLIST[0].next) {
+			Start-Job {Start-Sleep ($Using:JOBLIST[0].next - (Get-Date)).TotalSeconds} | Out-Null
+			Get-Job | Wait-Job | Out-Null
+		}
+		if ($Global:JOBFLAG -eq 0) {
+			Invoke-Expression $JOBLIST[0].cmd
+			$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
+		}
 	} else {
 		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000)))
 	}
