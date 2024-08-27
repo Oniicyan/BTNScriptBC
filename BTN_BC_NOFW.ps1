@@ -117,7 +117,7 @@ $ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool Show
 $ShowWindowAsync = Add-Type -MemberDefinition $ShowWindowAsyncCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
 $hwnd = (Get-Process -PID $PID).MainWindowHandle
 if ($hwnd -eq [System.IntPtr]::Zero) {
-	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq "BTNScriptBC"}
+	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq "BTNScriptBC - nofw"}
 	$hwnd = $TerminalProcess.MainWindowHandle
 }
 if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
@@ -129,7 +129,7 @@ if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
 [System.Reflection.Assembly]::LoadWithPartialName('WindowsFormsIntegration') | Out-Null
 $ICON = [System.Drawing.Icon]::ExtractAssociatedIcon("C:\Windows\System32\EaseOfAccessDialog.exe")
 $Main_Tool_Icon = New-Object System.Windows.Forms.NotifyIcon
-$Main_Tool_Icon.Text = "BTNScriptBC"
+$Main_Tool_Icon.Text = "BTNScriptBC - nofw"
 $Main_Tool_Icon.Icon = $ICON
 $Main_Tool_Icon.Visible = $True
 
