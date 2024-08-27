@@ -149,14 +149,32 @@ try {
 	$CID = 1
 }
 $Main_Tool_Icon.Add_Click({
-	if ($Global:SWITCH -ne 1) {
-		[Tricks]::SetForegroundWindow($hwnd)
-		$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
-		$Global:SWITCH = 1
-	} else {
-		$ShowWindowAsync::ShowWindowAsync($hwnd,0)
-		$Global:SWITCH = 0
+	switch ($_.Button) {
+		([Windows.Forms.MouseButtons]::Left) {
+			if ($Global:SWITCH -ne 1) {
+				[Tricks]::SetForegroundWindow($hwnd)
+				$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
+				$Global:SWITCH = 1
+			} else {
+				$ShowWindowAsync::ShowWindowAsync($hwnd,0)
+				$Global:SWITCH = 0
+			}
+		}
+		([Windows.Forms.MouseButtons]::Right) {[System.Windows.Forms.SendKeys]::SendWait('^')}
 	}
+})
+
+# 通知区域菜单
+$Menu_Peer = New-Object System.Windows.Forms.MenuItem
+$Menu_Peer.Enabled = $False
+$Menu_Peer.Text = "强制提交快照"
+$Contextmenu = New-Object System.Windows.Forms.ContextMenu
+$Main_Tool_Icon.ContextMenu = $Contextmenu
+$Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Peer)
+$Menu_Peer.add_Click({
+	$Global:JOBFLAG = 1
+	$NOWCONFIG.ability.submit_peers.next = 0
+	Get-Job | Stop-Job
 })
 
 [System.GC]::Collect()
@@ -217,15 +235,15 @@ Test-WebUIPort 1
 
 # 允许不安全的证书，考虑 BC WebUI 可能开启强制 HTTPS
 Add-Type @"
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
-public class TrustAllCertsPolicy : ICertificatePolicy {
-	public bool CheckValidationResult(
-		ServicePoint srvPoint, X509Certificate certificate,
-		WebRequest request, int certificateProblem) {
-		return true;
-	}
-}
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
@@ -479,8 +497,13 @@ function Invoke-SumbitPeers {
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 while ($True) {
+	Get-Job | Remove-Job -Force
+	$Global:JOBFLAG = 0
 	[System.GC]::Collect()
-	if (!$NOWCONFIG) {Get-BTNConfig}
+	if (!$NOWCONFIG) {
+		Get-BTNConfig
+		$Menu_Peer.Enabled = $True
+	}
 	if (
 		$NOWCONFIG.ability.submit_peers.interval -ne $NEWCONFIG.ability.submit_peers.interval -or
 		$NOWCONFIG.ability.reconfigure.interval -ne $NEWCONFIG.ability.reconfigure.interval
@@ -498,9 +521,14 @@ while ($True) {
 	}
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if ($JOBLIST[0].cmd) {
-		if ((Get-Date) -lt $JOBLIST[0].next) {Start-Sleep ($JOBLIST[0].next - (Get-Date)).TotalSeconds}
-		Invoke-Expression $JOBLIST[0].cmd
-		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
+		if ((Get-Date) -lt $JOBLIST[0].next) {
+			Start-Job {Start-Sleep ($Using:JOBLIST[0].next - (Get-Date)).TotalSeconds} | Out-Null
+			Get-Job | Wait-Job | Out-Null
+		}
+		if ($Global:JOBFLAG -eq 0) {
+			Invoke-Expression $JOBLIST[0].cmd
+			$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
+		}
 	} else {
 		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000)))
 	}
