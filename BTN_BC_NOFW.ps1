@@ -283,12 +283,11 @@ function Get-ErrorMessage {
 	if (!$Error[0].Exception.Response) {return}
 	$streamReader = [System.IO.StreamReader]::new($Error[0].Exception.Response.GetResponseStream())
 	try {
-		$streamReader.ReadToEnd() | ConvertFrom-Json
+		$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
 	} catch {
 		$streamReader.Close()
 		return
 	}
-	$ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
 	$streamReader.Close()
 	if ($ErrResp.message) {Write-Host (Get-Date) [ $ErrResp.message ] -ForegroundColor Red}
 }
@@ -319,6 +318,7 @@ function Get-SaltedHash {
 
 # 获取 BTN 服务器配置
 function Get-BTNConfig {
+#	if (!$NOWCONFIG) {$CONFIGURL = $CONFIGURL + "?rand=$(Get-Random)"}
 	while ($RETRY -lt 3) {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
@@ -328,8 +328,8 @@ function Get-BTNConfig {
 			}
 			break
 		} catch {
-			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 			Get-ErrorMessage
+			Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
 				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
@@ -482,8 +482,8 @@ function Invoke-SumbitPeers {
 		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
-		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Get-ErrorMessage
+		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 提交 Peers 快照失败，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Yellow
 	}
 	Remove-Item $PEERSGZIP
