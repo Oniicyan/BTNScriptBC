@@ -500,20 +500,24 @@ function Get-TaskPeers {
 		$uploaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
 		$RATESTR = $_ -Replace '(Remote|Local).*'
 		$RATEVAL = [Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
-		if ($RATEVAL.Count -eq 0) {
-			$rt_download_speed = 0
-			$rt_upload_speed = 0
-		} elseif ($RATEVAL.Count -eq 1) {
-			if ([Regex]::Matches($_,'(?<=[0-9a-f]{40}).*') -Cmatch '..i.') {
-				$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-				$rt_upload_speed = 0
-			} else {
+		switch ($RATEVAL.Count) {
+			0 {
 				$rt_download_speed = 0
-				$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+				$rt_upload_speed = 0
 			}
-		} elseif ($RATEVAL.Count -eq 2) {
-			$rt_download_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
-			$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+			1 {
+				if ([Regex]::Matches($_,'(?<=[0-9a-f]{40}).*') -Cmatch '..i.') {
+					$rt_download_speed = 0
+					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+				} else {
+					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+					$rt_upload_speed = 0
+				}
+			}
+			2 {
+				$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+				$rt_upload_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
+			}
 		}
 		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
 		$peer_flag = ""
