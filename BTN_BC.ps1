@@ -498,6 +498,8 @@ function Get-TaskPeers {
 		$_ -Match '(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)' | Out-Null
 		$downloaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
 		$uploaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
+		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
+		$BCFLAGS = [Regex]::Matches($_,'[IciC_]{4}').Value
 		$RATESTR = $_ -Replace '(Remote|Local).*'
 		$RATEVAL = [Regex]::Matches($RATESTR,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
 		switch ($RATEVAL.Count) {
@@ -506,7 +508,7 @@ function Get-TaskPeers {
 				$rt_upload_speed = 0
 			}
 			1 {
-				if ([Regex]::Matches($_,'(?<=[0-9a-f]{40}).*') -Cmatch '..i.') {
+				if ($BCFLAGS -Cmatch '..i.') {
 					$rt_download_speed = 0
 					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 				} else {
@@ -519,14 +521,15 @@ function Get-TaskPeers {
 				$rt_upload_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
 			}
 		}
-		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
 		$peer_flag = ""
-		switch -Regex ([Regex]::Matches($_,'[IciC_]{4}').Value) {
+		switch -Regex ($BCFLAGS) {
 			'Ic..' {$peer_flag = $peer_flag + 'd '}
 			'I_..' {$peer_flag = $peer_flag + 'D '}
+			'__..' {$peer_flag = $peer_flag + 'K '}
+		}
+		switch -Regex ($BCFLAGS) {
 			'..iC' {$peer_flag = $peer_flag + 'u '}
 			'..i_' {$peer_flag = $peer_flag + 'U '}
-			'__..' {$peer_flag = $peer_flag + 'K '}
 			'..__' {$peer_flag = $peer_flag + '? '}
 		}
 		if ($_ -Match 'Remote') {$peer_flag = $peer_flag + 'I'}
@@ -538,8 +541,8 @@ function Get-TaskPeers {
 			torrent_identifier = $torrent_identifier
 			torrent_size = [Math]::Round($torrent_size)
 			downloaded = [Math]::Round($downloaded)
-			uploaded = [Math]::Round($uploaded)
 			rt_download_speed = [Math]::Round($rt_download_speed)
+			uploaded = [Math]::Round($uploaded)
 			rt_upload_speed = [Math]::Round($rt_upload_speed)
 			peer_progress = [decimal]$peer_progress
 			downloader_progress = [decimal]$downloader_progress
