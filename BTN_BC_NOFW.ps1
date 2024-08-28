@@ -52,8 +52,8 @@ function Invoke-Setup {
 	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
 	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTN_BC\STARTUP.cmd"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTN_BC_STARTUP -InputObject $TASK | Out-Null
+	Unregister-ScheduledTask BTN_BC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTN_BC_NOFW_STARTUP -InputObject $TASK | Out-Null
 	echo ""
 	echo "  已配置以下自启动任务计划"
 	echo ""
@@ -83,7 +83,7 @@ UIUSER = $UIUSER
 UIPASS = $UIPASS
 APPUID = $APPUID
 APPSEC = $APPSEC
-"@| Out-File -Encoding ASCII $INFOPATH
+"@| Out-File $INFOPATH
 	echo ""
 	echo "  用户信息已保存至 $INFOPATH"
 	echo ""
@@ -210,7 +210,7 @@ Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColo
 # 循环工作时，不提供参数，在端口检测失败时显示一次消息，并在端口连通后测试网页
 function Test-WebUIPort {
 	param($FLAG)
-	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
+	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet -WarningAction SilentlyContinue)) {
 		if ((!$FLAG) -or ($FLAG -eq 1)) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
 		if (!$FLAG) {$FLAG = 2}
 		if ($FLAG -eq 1) {$FLAG = 3}
@@ -320,7 +320,7 @@ function Get-BTNConfig {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
-				$NEWCONFIG | ConvertTo-Json | Out-File -Encoding ASCII $ENV:USERPROFILE\BTN_BC\CONFIG.json
+				$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version.SubString(0,8) ] -ForegroundColor Green
 			}
 			break
@@ -377,7 +377,7 @@ function Get-TaskPeers {
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$_ | Out-File -Encoding ASCII -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
+			$_ | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
 			return
 		}
 		switch -Regex ($ip_address) {
@@ -473,7 +473,7 @@ function Get-PeersJson {
 }
 "@ | ConvertFrom-Json
 	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	$SUBMITHASH | ConvertTo-Json | Out-File -Encoding ASCII $PEERSJSON
+	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 }
 
