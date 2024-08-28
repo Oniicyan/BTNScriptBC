@@ -609,7 +609,7 @@ function Get-BTNRules {
 		$RULESIWR = Invoke-Webrequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NOWCONFIG.ability.rules.endpoint + $REVURL)
 		if ($RULESIWR.Content.Length -eq 0) {return}
 		$RULESOBJ = [system.Text.Encoding]::UTF8.GetString($RULESIWR.RawContentStream.ToArray()) | ConvertFrom-Json
-		$RULESOBJ | ConvertTo-Json | Out-File -Encoding utf8NoBOM $RULESJSON
+		$RULESOBJ | ConvertTo-Json | Out-File -Encoding ASCII $RULESJSON
 		$RULESOBJ.IP.PSObject.Properties.value | Out-File -Encoding ASCII $BTNIPLIST
 		if (Test-Path $ALLIPLIST) {
 			$ADDRESS = ((Get-Content $BTNIPLIST) + (Get-Content $ALLIPLIST)) -Join ','
