@@ -454,7 +454,6 @@ function Get-TaskPeers {
 		$SUMMARY = Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $TASKURL
 		$PEERS = Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${TASKURL}`&show=peers
 	} catch {
-		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 获取任务详情超时，跳过一个任务 ] -ForegroundColor Yellow
 		return
 	}
