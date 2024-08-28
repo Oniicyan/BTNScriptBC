@@ -721,7 +721,7 @@ while ($True) {
 			Start-Job {Start-Sleep ($Using:JOBLIST[0].next - (Get-Date)).TotalSeconds} | Out-Null
 			Get-Job | Wait-Job | Out-Null
 		}
-		if ($Global:JOBFLAG -eq 0) {
+		if ($JOBFLAG -eq 0) {
 			Invoke-Expression $JOBLIST[0].cmd
 			$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
 		}
