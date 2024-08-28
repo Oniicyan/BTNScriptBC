@@ -637,7 +637,7 @@ function Get-BTNRules {
 		}
 		$Global:IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
 		$VERSION = ([Regex]::Matches(((Get-Content $RULESJSON) | Select-String 'version'),'[0-9a-f]{8}')).Value
-		Write-Host (Get-Date) [ 更新 BTN 封禁规则成功，当前版本 ${VERSION}，共 $((Get-Content $BTNIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
+		Write-Host (Get-Date) [ 更新 BTN 封禁规则成功，当前版本 ${VERSION}，共 $((Get-Content $BTNIPLIST).Count) 条 IP 规则 ] -ForegroundColor Green
 		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $IPCOUNT 条 IP 规则 ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
@@ -664,7 +664,7 @@ function Get-IPList {
 			New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses $ADDRESS | Out-Null
 		}
 		$Global:IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
-		Write-Host (Get-Date) [ 更新 IP 黑名单订阅成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则， ] -ForegroundColor Green
+		Write-Host (Get-Date) [ 更新 IP 黑名单订阅成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则 ] -ForegroundColor Green
 		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $IPCOUNT 条 IP 规则 ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
