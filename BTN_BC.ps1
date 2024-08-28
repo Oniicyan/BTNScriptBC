@@ -112,7 +112,7 @@ function Invoke-Setup {
 	Remove-NetFirewallRule -DisplayName "BTN_$BTNAME" -ErrorAction Ignore
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-	"powershell iex (irm $SCRIPTURL -TimeoutSec 30)" | Out-File $env:USERPROFILE\BTN_BC\STARTUP.cmd
+	"@start powershell iex (irm $SCRIPTURL -TimeoutSec 30)" | Out-File -Encoding ASCII $env:USERPROFILE\BTN_BC\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtStartup
