@@ -260,13 +260,13 @@ $Menu_Peer.add_Click({
 })
 $Menu_Rule.add_Click({
 	$Global:JOBFLAG = 1
-	Remove-Item $RULESJSON -Force
+	Remove-Item $RULESJSON -Force -ErrorAction Ignore
 	$NOWCONFIG.ability.rules.next = 0
 	Get-Job | Stop-Job
 })
 $Menu_List.add_Click({
 	$Global:JOBFLAG = 1
-	Remove-Item $ALLIPLIST -Force
+	Remove-Item $ALLIPLIST -Force -ErrorAction Ignore
 	$NOWCONFIG.ability.iplist.next = 0
 	Get-Job | Stop-Job
 })
