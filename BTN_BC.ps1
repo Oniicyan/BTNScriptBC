@@ -165,7 +165,7 @@ APPSEC = $APPSEC
 	echo ""
 	echo "  可直接编辑用户信息，也可删除以重新配置"
 	echo ""
-	echo "  执行以下命令清除配置"
+	echo "  执行以下命令清除所有配置"
 	echo ""
 	echo "  iex (irm btn-bc.pages.dev/unset)"
 	echo ""
