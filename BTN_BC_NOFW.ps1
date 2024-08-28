@@ -83,7 +83,7 @@ UIUSER = $UIUSER
 UIPASS = $UIPASS
 APPUID = $APPUID
 APPSEC = $APPSEC
-"@| Out-File $INFOPATH
+"@| Out-File -Encoding ASCII $INFOPATH
 	echo ""
 	echo "  用户信息已保存至 $INFOPATH"
 	echo ""
@@ -358,7 +358,7 @@ function Get-TaskPeers {
 	)
 	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
 	if ($torrent_identifier -Match '1ca334e65d854658cf4398db9f2e1c350a1d80b4aa29b2a87b47a1534bb961d2') {
-		Write-Host (Get-Date) [ 暂不支持纯 BTv2 任务，已跳过 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 已跳过一个纯 BTv2 任务 ] -ForegroundColor Yellow
 		return
 	}
 	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
