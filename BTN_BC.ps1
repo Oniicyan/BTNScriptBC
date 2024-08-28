@@ -4,6 +4,7 @@ $Host.UI.RawUI.WindowTitle = "BTNScriptBC"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
+$SCRIPTURL = "btn-bc.pages.dev"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/7.0.0"
 
 # 检测管理员权限与防火墙状态
@@ -111,10 +112,11 @@ function Invoke-Setup {
 	Remove-NetFirewallRule -DisplayName "BTN_$BTNAME" -ErrorAction Ignore
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
 	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	"powershell iex (irm $SCRIPTURL -TimeoutSec 30)" | Out-File $env:USERPROFILE\BTN_BC\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtStartup
-	$ACTION = New-ScheduledTaskAction -Execute "powershell" -Argument "iex (irm btn-bc.pages.dev)"
+	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTN_BC\STARTUP.cmd"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
 	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTN_BC_STARTUP -InputObject $TASK | Out-Null
@@ -220,17 +222,12 @@ public class Tricks {
 	public static extern bool SetForegroundWindow(IntPtr hWnd);
 }
 "@
-try {
-	$CID = [Regex]::Matches(((quser) -Match '^>'),'(?<= )\d+(?= )').Value
-} catch {
-	$CID = 1
-}
 $Main_Tool_Icon.Add_Click({
 	switch ($_.Button) {
 		([Windows.Forms.MouseButtons]::Left) {
 			if ($Global:SWITCH -ne 1) {
 				[Tricks]::SetForegroundWindow($hwnd)
-				$ShowWindowAsync::ShowWindowAsync($hwnd,$CID)
+				$ShowWindowAsync::ShowWindowAsync($hwnd,1)
 				$Global:SWITCH = 1
 			} else {
 				$ShowWindowAsync::ShowWindowAsync($hwnd,0)
@@ -310,7 +307,7 @@ Write-Host (Get-Date) [ BitComet WebUI 目标主机为 $UIHOST ] -ForegroundColo
 # 循环工作时，不提供参数，在端口检测失败时显示一次消息，并在端口连通后测试网页
 function Test-WebUIPort {
 	param($FLAG)
-	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet -WarningAction SilentlyContinue)) {
+	while (!(Test-NetConnection $UIADDR -port $UIPORT -InformationLevel Quiet)) {
 		if ((!$FLAG) -or ($FLAG -eq 1)) {Write-Host (Get-Date) [ BitComet WebUI 未开启，每 60 秒检测一次 ] -ForegroundColor Yellow}
 		if (!$FLAG) {$FLAG = 2}
 		if ($FLAG -eq 1) {$FLAG = 3}
