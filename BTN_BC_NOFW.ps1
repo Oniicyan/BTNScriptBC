@@ -352,10 +352,15 @@ function Get-BTNConfig {
 
 # 获取给定任务的 Peers 信息并记录到哈希表
 function Get-TaskPeers {
-	param (
-		$SUMMARY,
-		$PEERS
-	)
+	param ($TASKURL)
+	try {
+		$SUMMARY = Invoke-RestMethod -Credential $UIAUTH $TASKURL
+		$PEERS = Invoke-RestMethod -Credential $UIAUTH ${TASKURL}`&show=peers
+	} catch {
+		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 获取信息超时，跳过一个任务 ] -ForegroundColor Yellow
+		return
+	}
 	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
 	if ($torrent_identifier -Match '1ca334e65d854658cf4398db9f2e1c350a1d80b4aa29b2a87b47a1534bb961d2') {
 		Write-Host (Get-Date) [ 跳过一个 BTv2 任务 ] -ForegroundColor Yellow
@@ -477,7 +482,7 @@ function Get-PeersJson {
 	"peers": []
 }
 "@ | ConvertFrom-Json
-	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
+	$ACTIVE |% {Get-TaskPeers $_}
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 	if ($SUBMITHASH.peers.Count -eq 0) {
 		$Global:SUBMIT = 0
