@@ -354,11 +354,11 @@ function Get-BTNConfig {
 function Get-TaskPeers {
 	param ($TASKURL)
 	try {
-		$SUMMARY = Invoke-RestMethod -Credential $UIAUTH $TASKURL
-		$PEERS = Invoke-RestMethod -Credential $UIAUTH ${TASKURL}`&show=peers
+		$SUMMARY = Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH $TASKURL
+		$PEERS = Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${TASKURL}`&show=peers
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 获取信息超时，跳过一个任务 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 获取任务详情超时，跳过一个任务 ] -ForegroundColor Yellow
 		return
 	}
 	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
@@ -473,7 +473,7 @@ function Get-PeersJson {
 		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 获取 BitComet 任务列表失败，跳过本次提交 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 获取任务列表超时，跳过本次提交 ] -ForegroundColor Yellow
 	}
 	Write-Host (Get-Date) [ 分析 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
 	$SUBMITHASH = @"
