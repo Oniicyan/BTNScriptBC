@@ -115,7 +115,7 @@ function Invoke-Setup {
 	"@start powershell iex (irm $SCRIPTURL -TimeoutSec 30)" | Out-File -Encoding ASCII $env:USERPROFILE\BTN_BC\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
-	$TRIGGER = New-ScheduledTaskTrigger -AtStartup
+	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
 	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTN_BC\STARTUP.cmd"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
 	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
