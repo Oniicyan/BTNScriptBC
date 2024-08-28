@@ -46,7 +46,7 @@ function Invoke-Setup {
 	echo ""
 	pause
 	Clear-Host
-	"@start powershell iex (irm $SCRIPTURL -TimeoutSec 30)" | Out-File -Encoding ASCII $env:USERPROFILE\BTN_BC\STARTUP.cmd
+	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 30)" | Out-File -Encoding ASCII $env:USERPROFILE\BTN_BC\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
