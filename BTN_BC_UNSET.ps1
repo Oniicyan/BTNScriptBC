@@ -35,8 +35,7 @@ if ($TASKLIST) {
 }
 
 $DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
-try {
-	$DYKWNAME = (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Keyword
+if ($DYKWNAME = (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore).Keyword) {
 	echo ""
 	echo "  清除以下动态关键字"
 	echo ""
@@ -44,7 +43,7 @@ try {
 	echo ""
 	pause
 	Remove-NetFirewallDynamicKeywordAddress -Id $DYKWID
-} catch  {
+} else  {
 	echo ""
 	echo "  没有需要清除的动态关键字"
 }
