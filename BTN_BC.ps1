@@ -159,7 +159,7 @@ UIUSER = $UIUSER
 UIPASS = $UIPASS
 APPUID = $APPUID
 APPSEC = $APPSEC
-"@| Out-File -Encoding ASCII $INFOPATH
+"@| Out-File $INFOPATH
 	echo ""
 	echo "  用户信息已保存至 $INFOPATH"
 	echo ""
@@ -417,7 +417,7 @@ function Get-BTNConfig {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
-				$NEWCONFIG | ConvertTo-Json | Out-File -Encoding ASCII $ENV:USERPROFILE\BTN_BC\CONFIG.json
+				$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version.SubString(0,8) ] -ForegroundColor Green
 			}
 			break
@@ -455,7 +455,7 @@ function Get-TaskPeers {
 	)
 	$torrent_identifier = Get-SaltedHash (($SUMMARY.Split([Environment]::NewLine) | Select-String 'InfoHash') -Replace '.*>(?=[0-9a-z])| Piece.*')
 	if ($torrent_identifier -Match '1ca334e65d854658cf4398db9f2e1c350a1d80b4aa29b2a87b47a1534bb961d2') {
-		Write-Host (Get-Date) [ 已跳过一个纯 BTv2 任务 ] -ForegroundColor Yellow
+		Write-Host (Get-Date) [ 暂不支持纯 BTv2 任务，已跳过 ] -ForegroundColor Yellow
 		return
 	}
 	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
@@ -474,7 +474,7 @@ function Get-TaskPeers {
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$_ | Out-File -Encoding ASCII -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
+			$_ | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
 			return
 		}
 		switch -Regex ($ip_address) {
@@ -570,7 +570,7 @@ function Get-PeersJson {
 }
 "@ | ConvertFrom-Json
 	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	$SUBMITHASH | ConvertTo-Json | Out-File -Encoding ASCII $PEERSJSON
+	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 }
 
@@ -609,8 +609,8 @@ function Get-BTNRules {
 		$RULESIWR = Invoke-Webrequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NOWCONFIG.ability.rules.endpoint + $REVURL)
 		if ($RULESIWR.Content.Length -eq 0) {return}
 		$RULESOBJ = [system.Text.Encoding]::UTF8.GetString($RULESIWR.RawContentStream.ToArray()) | ConvertFrom-Json
-		$RULESOBJ | ConvertTo-Json | Out-File -Encoding ASCII $RULESJSON
-		$RULESOBJ.IP.PSObject.Properties.value | Out-File -Encoding ASCII $BTNIPLIST
+		$RULESOBJ | ConvertTo-Json | Out-File $RULESJSON
+		$RULESOBJ.IP.PSObject.Properties.value | Out-File $BTNIPLIST
 		if (Test-Path $ALLIPLIST) {
 			$ADDRESS = ((Get-Content $BTNIPLIST) + (Get-Content $ALLIPLIST)) -Join ','
 		} else {
@@ -638,7 +638,7 @@ function Get-IPList {
 	try {
 		$NEWIPLIST = Invoke-RestMethod -TimeoutSec 30 $IPLISTURL
 		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST -ErrorAction Ignore).Count) {return}
-		$NEWIPLIST | Out-File -Encoding ASCII $ALLIPLIST
+		$NEWIPLIST | Out-File $ALLIPLIST
 		if (Test-Path $BTNIPLIST) {
 			$ADDRESS = ((Get-Content $ALLIPLIST) + (Get-Content $BTNIPLIST)) -Join ','
 		} else {
