@@ -575,14 +575,21 @@ function Get-PeersJson {
 }
 "@ | ConvertFrom-Json
 	$ACTIVE |% {Get-TaskPeers (Invoke-RestMethod -Credential $UIAUTH $_) (Invoke-RestMethod -Credential $UIAUTH ${_}`&show=peers)}
-	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
+	if ($SUBMITHASH.peers.Count -eq 0) {
+		Write-Host (Get-Date) [ 没有需要提交的数据 ] -ForegroundColor Green
+		$Global:SUBMIT = 0
+		return
+	}
+	$SUBMITHASH | ConvertTo-Json | Out-File $PEERSJSON
+	$Global:SUBMIT = 1
 }
 
 # JSON 打包为 Gzip 并提交至 BTN 服务器
 $PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
 $PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
 function Invoke-SumbitPeers {
+	if ($SUBMIT -eq 0) {return}
 	$JSONSTREAM = New-Object System.IO.FileStream($PEERSJSON,([IO.FileMode]::Open),([IO.FileAccess]::Read),([IO.FileShare]::Read))
 	$GZIPSTREAM = New-Object System.IO.FileStream($PEERSGZIP,([IO.FileMode]::Create),([IO.FileAccess]::Write),([IO.FileShare]::None))
 	$GZIPBUFFER = New-Object System.IO.Compression.GZipStream($GZIPSTREAM,[System.IO.Compression.CompressionMode]::Compress)
