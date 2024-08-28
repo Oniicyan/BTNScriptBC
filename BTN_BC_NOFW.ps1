@@ -468,7 +468,7 @@ function Get-PeersJson {
 		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 5 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 获取 BitComet 任务列表失败，跳过本次提交 ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 获取 BitComet 任务列表失败，跳过本次提交 ] -ForegroundColor Yellow
 	}
 	Write-Host (Get-Date) [ 分析 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
 	$SUBMITHASH = @"
