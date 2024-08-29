@@ -27,11 +27,27 @@ https://btn-prod.ghostchu-services.top/
 
 动态关键字至少要求 Windows 10 21H2 左右的版本 （[未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/Get-NetFirewallDynamicKeywordAddress.md)）
 
-可选择不使用动态关键字的 `nofw` 版本，但不提供过滤功能
+可选择不使用动态关键字的 `nofw` 脚本，但不提供过滤功能
 
 **所有脚本及命令默认在 PowerShell 下以管理员权限执行**
 
 按下 **Win + X 键**，Windows 11 选择 “**终端管理员**”，Windows 10 选择 “**Windows PowerShell（管理员）**”
+
+### 为什么需要管理员权限？
+
+本脚本以下 3 种命令需要管理员权限执行
+
+1. `New/Remove-NetFirewallRule`：创建／移除过滤规则
+2. `New/Update/Remove-NetFirewallDynamicKeywordAddress`：创建／更新／移除动态关键字
+3. `Set-ItemProperty`：修改注册表
+
+   `Invoke-WebRequest` 命令需要使用 IE 引擎；当 IE 引擎未初始化时会报错停止
+
+   通过修改注册表的方法跳过 IE 引擎的初始化检测，不影响功能
+
+在使用 `nofw` 脚本时，1. 和 2. 并不需要；而 3. 仅在初始配置中，检测到 `Invoke-WebRequest` 命令报错时需要。
+
+因此，`nofw` 脚本不强制要求管理员权限。
 
 ## 自动配置
 
