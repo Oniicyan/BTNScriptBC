@@ -4,7 +4,7 @@ $Host.UI.RawUI.WindowTitle = "BTNScriptBC - nofw"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $SCRIPTURL = "btn-bc.pages.dev/nofw"
-$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/7.0.0"
+$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/0.0.1"
 
 # 检测 IE 引擎是否可用
 # 不可用时提示以管理员权限执行
