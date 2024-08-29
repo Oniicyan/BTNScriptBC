@@ -684,7 +684,6 @@ function Get-IPList {
 # 2. 等待并执行最近的一个（排列首位的）任务
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
-$IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore).Addresses -Split ',').Count
 while ($True) {
 	Get-Job | Remove-Job -Force
 	$Global:JOBFLAG = 0
