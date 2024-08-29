@@ -529,7 +529,6 @@ function Invoke-SumbitPeers {
 while ($True) {
 	Get-Job | Remove-Job -Force
 	$Global:JOBFLAG = 0
-	[System.GC]::Collect()
 	if (!$NOWCONFIG) {
 		Get-BTNConfig
 		$Menu_Peer.Enabled = $True
@@ -549,6 +548,7 @@ while ($True) {
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
 	}
+ 	[System.GC]::Collect()
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if ($JOBLIST[0].cmd) {
 		if ((Get-Date) -lt $JOBLIST[0].next) {
