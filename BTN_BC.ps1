@@ -687,7 +687,6 @@ function Get-IPList {
 while ($True) {
 	Get-Job | Remove-Job -Force
 	$Global:JOBFLAG = 0
-	[System.GC]::Collect()
 	if (!$NOWCONFIG) {
 		Get-IPList
 		Get-BTNConfig
@@ -718,6 +717,7 @@ while ($True) {
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
 	}
  	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
+  	[System.GC]::Collect()
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if ($JOBLIST[0].cmd) {
 		if ((Get-Date) -lt $JOBLIST[0].next) {
