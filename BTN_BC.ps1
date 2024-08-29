@@ -5,7 +5,7 @@ $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
 $SCRIPTURL = "btn-bc.pages.dev"
-$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/7.0.0"
+$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/0.0.1"
 
 # 检测管理员权限与防火墙状态
 # nofw 版初始配置时需要
