@@ -686,7 +686,7 @@ function Get-IPList {
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 while ($True) {
 	Get-Job | Remove-Job -Force
-	$Global:JOBFLAG = 0
+	$JOBFLAG = 0
 	if (!$NOWCONFIG) {
 		Get-IPList
 		Get-BTNConfig
