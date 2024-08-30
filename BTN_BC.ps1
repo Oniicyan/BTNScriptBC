@@ -248,11 +248,19 @@ $Menu_Rule.Text = "强制更新规则"
 $Menu_List = New-Object System.Windows.Forms.MenuItem
 $Menu_List.Enabled = $False
 $Menu_List.Text = "强制更新订阅"
+$Menu_Conf= New-Object System.Windows.Forms.MenuItem
+$Menu_Conf.Enabled = $False
+$Menu_Conf.Text = "强制更新配置"
+$Menu_Show = New-Object System.Windows.Forms.MenuItem
+$Menu_Show.Enabled = $False
+$Menu_Show.Text = "显示任务安排"
 $Contextmenu = New-Object System.Windows.Forms.ContextMenu
 $Main_Tool_Icon.ContextMenu = $Contextmenu
 $Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Peer)
 $Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Rule)
 $Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_List)
+$Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Conf)
+$Main_Tool_Icon.contextMenu.MenuItems.AddRange($Menu_Show)
 $Menu_Peer.add_Click({
 	$Global:JOBFLAG = 1
 	$NOWCONFIG.ability.submit_peers.next = 0
@@ -269,6 +277,16 @@ $Menu_List.add_Click({
 	Remove-Item $ALLIPLIST -Force -ErrorAction Ignore
 	$NOWCONFIG.ability.iplist.next = 0
 	Get-Job | Stop-Job
+})
+$Menu_Conf.add_Click({
+	$Global:JOBFLAG = 2
+	Get-Job | Stop-Job
+})
+$Menu_Show.add_Click({
+	Write-Host (Get-Date) [ 下次提交快照在 $($NOWCONFIG.ability.submit_peers.next) ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 下次更新规则在 $($NOWCONFIG.ability.rules.next) ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 下次更新订阅在 $($NOWCONFIG.ability.iplist.next) ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 下次更新配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
 })
 
 [System.GC]::Collect()
@@ -686,13 +704,15 @@ function Get-IPList {
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
 while ($True) {
 	Get-Job | Remove-Job -Force
-	$JOBFLAG = 0
+	$Global:JOBFLAG = 0
 	if (!$NOWCONFIG) {
 		Get-IPList
 		Get-BTNConfig
 		$Menu_Peer.Enabled = $True
 		$Menu_Rule.Enabled = $True
 		$Menu_List.Enabled = $True
+		$Menu_Conf.Enabled = $True
+		$Menu_Show.Enabled = $True
 	}
 	if (
 		$NOWCONFIG.ability.submit_peers.interval -ne $NEWCONFIG.ability.submit_peers.interval -or
@@ -702,6 +722,7 @@ while ($True) {
 		$NOWCONFIG = $NEWCONFIG
 		$NOWCONFIG.ability | Add-Member iplist @{}
 		$NOWCONFIG.ability.iplist | Add-Member interval 3600000
+		$NOWCONFIG.ability.iplist | Add-Member random_initial_delay 1
 		$NOWCONFIG.ability.PSObject.Properties.Name |% {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
 			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000))) -ErrorAction Ignore
@@ -716,19 +737,17 @@ while ($True) {
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询 IP 黑名单订阅更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
 	}
- 	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
-  	[System.GC]::Collect()
+	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
+	[System.GC]::Collect()
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
-	if ($JOBLIST[0].cmd) {
-		if ((Get-Date) -lt $JOBLIST[0].next) {
-			Start-Job {Start-Sleep ($Using:JOBLIST[0].next - (Get-Date)).TotalSeconds} | Out-Null
-			Get-Job | Wait-Job | Out-Null
-		}
-		if ($JOBFLAG -eq 0) {
-			Invoke-Expression $JOBLIST[0].cmd
-			$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))
-		}
-	} else {
-		$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000)))
+	if (!$JOBLIST[0].cmd) {$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000))); continue}
+	if ((Get-Date) -lt $JOBLIST[0].next) {
+		Start-Job {Start-Sleep ($Using:JOBLIST[0].next - (Get-Date)).TotalSeconds} | Out-Null
+		Get-Job | Wait-Job | Out-Null
+	}
+	switch ($JOBFLAG) {
+		0 {Invoke-Expression $JOBLIST[0].cmd; $JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))}
+		1 {continue}
+		2 {Remove-Variable NOWCONFIG}
 	}
 }
