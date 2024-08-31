@@ -643,7 +643,10 @@ function Get-BTNRules {
 	}
 	try {
 		$RULESIWR = Invoke-Webrequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NOWCONFIG.ability.rules.endpoint + $REVURL)
-		if ($RULESIWR.Content.Length -eq 0) {return}
+		if ($RULESIWR.Content.Length -eq 0) {
+			Write-Host (Get-Date) [ 当前 BTN 封禁规则已是最新 ] -ForegroundColor Green
+			return
+		}
 		$RULESOBJ = [system.Text.Encoding]::UTF8.GetString($RULESIWR.RawContentStream.ToArray()) | ConvertFrom-Json
 		$RULESOBJ | ConvertTo-Json | Out-File $RULESJSON
 		$RULESOBJ.IP.PSObject.Properties.value | Out-File $BTNIPLIST
@@ -673,7 +676,10 @@ $ALLIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
 function Get-IPList {
 	try {
 		$NEWIPLIST = Invoke-RestMethod -TimeoutSec 30 $IPLISTURL
-		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST -ErrorAction Ignore).Count) {return}
+		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST -ErrorAction Ignore).Count) {
+			Write-Host (Get-Date) [ 当前 IP 黑名单订阅已是最新 ] -ForegroundColor Green
+			return
+		}
 		$NEWIPLIST | Out-File $ALLIPLIST
 		if (Test-Path $BTNIPLIST) {
 			$ADDRESS = ((Get-Content $ALLIPLIST) + (Get-Content $BTNIPLIST)) -Join ','
