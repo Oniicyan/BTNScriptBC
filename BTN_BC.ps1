@@ -284,9 +284,9 @@ $Menu_Conf.add_Click({
 })
 $Menu_Show.add_Click({
 	Write-Host (Get-Date) [ 下次提交快照在 $($NOWCONFIG.ability.submit_peers.next) ] -ForegroundColor Cyan
-	Write-Host (Get-Date) [ 下次更新规则在 $($NOWCONFIG.ability.rules.next) ] -ForegroundColor Cyan
-	Write-Host (Get-Date) [ 下次更新订阅在 $($NOWCONFIG.ability.iplist.next) ] -ForegroundColor Cyan
-	Write-Host (Get-Date) [ 下次更新配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 下次查询规则在 $($NOWCONFIG.ability.rules.next) ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 下次查询订阅在 $($NOWCONFIG.ability.iplist.next) ] -ForegroundColor Cyan
+	Write-Host (Get-Date) [ 下次查询配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
 })
 
 [System.GC]::Collect()
