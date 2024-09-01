@@ -638,8 +638,8 @@ function Invoke-SumbitPeers {
 $RULESJSON = "$ENV:USERPROFILE\BTN_BC\RULES.json"
 $BTNIPLIST = "$ENV:USERPROFILE\BTN_BC\RULES.txt"
 function Get-BTNRules {
-	if ((Get-Content $RULESJSON -ErrorAction Ignore) -Match 'version') {
-		$REVURL = "?rev=$(([Regex]::Matches(((Get-Content $RULESJSON -ErrorAction Ignore) | Select-String 'version'),'[0-9a-f]{8}')).Value)"
+	if (Test-Path $RULESJSON) {
+		$REVURL = "?rev=$(([Regex]::Matches((Get-Content $RULESJSON | Select-String 'version'),'[0-9a-f]{8}')).Value)"
 	}
 	try {
 		$RULESIWR = Invoke-Webrequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NOWCONFIG.ability.rules.endpoint + $REVURL)
