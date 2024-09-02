@@ -190,6 +190,7 @@ if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
 	Invoke-Setup
 }
+New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses 1.2.3.4 -ErrorAction Ignore | Out-Null
 
 # 隐藏窗口
 $ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
@@ -289,6 +290,7 @@ $Menu_Show.add_Click({
 	Write-Host (Get-Date) [ 下次查询配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
 })
 
+Clear-Host
 [System.GC]::Collect()
 
 # 启动信息
@@ -655,11 +657,7 @@ function Get-BTNRules {
 		} else {
 			$ADDRESS = (Get-Content $BTNIPLIST) -Join ','
 		}
-		if (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore) {
-			Update-NetFirewallDynamicKeywordAddress -Id $DYKWID -Addresses $ADDRESS | Out-Null
-		} else {
-			New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses $ADDRESS | Out-Null
-		}
+		Update-NetFirewallDynamicKeywordAddress -Id $DYKWID -Addresses $ADDRESS | Out-Null
 		$Global:IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
 		$VERSION = ([Regex]::Matches(((Get-Content $RULESJSON) | Select-String 'version'),'[0-9a-f]{8}')).Value
 		Write-Host (Get-Date) [ 更新 BTN 封禁规则成功，当前版本 ${VERSION}，共 $((Get-Content $BTNIPLIST).Count) 条 IP 规则 ] -ForegroundColor Green
@@ -686,11 +684,7 @@ function Get-IPList {
 		} else {
 			$ADDRESS = (Get-Content $ALLIPLIST) -Join ','
 		}
-		if (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore) {
-			Update-NetFirewallDynamicKeywordAddress -Id $DYKWID -Addresses $ADDRESS | Out-Null
-		} else {
-			New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses $ADDRESS | Out-Null
-		}
+		Update-NetFirewallDynamicKeywordAddress -Id $DYKWID -Addresses $ADDRESS | Out-Null
 		$Global:IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count
 		Write-Host (Get-Date) [ 更新 IP 黑名单订阅成功，共 $((Get-Content $ALLIPLIST).Count) 条 IP 规则 ] -ForegroundColor Green
 		Write-Host (Get-Date) [ 更新动态关键字成功，合并后共 $IPCOUNT 条 IP 规则 ] -ForegroundColor Green
