@@ -695,6 +695,10 @@ function Get-IPList {
 	}
 }
 
+# 循环工作前，更新 IP 黑名单订阅
+Get-IPList
+if (!$IPCOUNT) {$IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count}
+
 # 首次启动时，先获取 BTN 服务器配置，并添加下次执行时间
 # 遵守 BTN 规范的首次随机延迟要求
 # 以下循环工作流程
@@ -702,7 +706,6 @@ function Get-IPList {
 # 2. 等待并执行最近的一个（排列首位的）任务
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
-Get-IPList
 while ($True) {
 	Get-Job | Remove-Job -Force
 	$Global:JOBFLAG = 0
@@ -737,7 +740,7 @@ while ($True) {
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询 IP 黑名单订阅更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
 	}
-	if ($IPCOUNT) {$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"}
+	$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"
 	[System.GC]::Collect()
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
 	if (!$JOBLIST[0].cmd) {$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000))); continue}
