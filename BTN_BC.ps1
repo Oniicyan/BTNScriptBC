@@ -698,6 +698,7 @@ function Get-IPList {
 # 循环工作前，更新 IP 黑名单订阅
 Get-IPList
 if (!$IPCOUNT) {$IPCOUNT = ((Get-NetFirewallDynamicKeywordAddress -Id $DYKWID).Addresses -Split ',').Count}
+$Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"
 
 # 首次启动时，先获取 BTN 服务器配置，并添加下次执行时间
 # 遵守 BTN 规范的首次随机延迟要求
