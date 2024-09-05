@@ -357,7 +357,7 @@ function Get-BTNConfig {
 	if ($RETRY -ge 3) {
 		if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
 			$NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
-			Write-Host (Get-Date) [ 更新 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
+			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
 		} else {
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
 			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
