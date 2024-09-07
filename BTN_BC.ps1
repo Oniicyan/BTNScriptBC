@@ -332,7 +332,13 @@ function Test-WebUIPort {
 		if (!$FLAG) {$FLAG = 2}
 		if ($FLAG -eq 1) {$FLAG = 3}
 		[System.GC]::Collect()
-		Start-Sleep 60
+		Start-Job {Start-Sleep 60} | Out-Null
+		Get-Job | Wait-Job | Out-Null
+		Get-Job | Remove-Job -Force
+		if ($JOBFLAG) {
+			Write-Host (Get-Date) [ 结束正在等待的操作，强制执行任务 ] -ForegroundColor Yellow
+			return
+		}
 	}
 	if ($FLAG -eq 2) {
 		if ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH $UIHOME) -Match 'BitComet') {
@@ -373,6 +379,7 @@ while ($UIRESP.StatusCode -ne 200) {
 			Write-Host (Get-Date) [ 目标网页认证失败，请确认 WebUI 的账号与密码 ] -ForegroundColor Red
 		} else {
 			Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 		}
 		return
 	}
@@ -384,8 +391,18 @@ while ($UIRESP.StatusCode -ne 200) {
 			$UIHOME = [String]($UIHOME | Select-String '.*:\d*') + $UIPATH
 		}
 		default {
-			Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 秒后重试 ] -ForegroundColor Yellow
-			Start-Sleep 10
+			$RETRY++
+			if ($RETRY -le 10) {
+				Write-Host (Get-Date) [ 网页返回代码 $UIRESP.StatusCode，10 秒后第 $RETRY 次重试 ] -ForegroundColor Yellow
+				Start-Job {Start-Sleep 10} | Out-Null
+				Get-Job | Wait-Job | Out-Null
+				Get-Job | Remove-Job -Force
+				if ($JOBFLAG) {Write-Host (Get-Date) [ 无法跳过本操作，完成后执行 ] -ForegroundColor Yellow}
+			} else {
+				Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
+				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+				return
+			}
 		}
 	}
 }
@@ -433,7 +450,7 @@ function Get-SaltedHash {
 # 获取 BTN 服务器配置
 function Get-BTNConfig {
 #	if (!$NOWCONFIG) {$CONFIGURL = $CONFIGURL + "?rand=$(Get-Random)"}
-	while ($RETRY -lt 3) {
+	while ($True) {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
@@ -450,18 +467,25 @@ function Get-BTNConfig {
 				exit
 			}
 			$RETRY++
+			if ($RETRY -gt 3) {
+				if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
+					$NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
+					Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
+					break
+				} else {
+					Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
+					Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+					exit
+				}
+			}
 			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，600 秒后第 $RETRY 次重试 ] -ForegroundColor Yellow
-			Start-Sleep 600
-		}
-	}
-	if ($RETRY -ge 3) {
-		if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
-			$NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
-		} else {
-			Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
-			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
-			exit
+			Start-Job {Start-Sleep 600} | Out-Null
+			Get-Job | Wait-Job | Out-Null
+			Get-Job | Remove-Job -Force
+			if ($JOBFLAG) {
+				Write-Host (Get-Date) [ 结束正在等待的操作，强制执行任务 ] -ForegroundColor Yellow
+				return
+			}
 		}
 	}
 	$Global:NEWCONFIG = $NEWCONFIG
@@ -595,6 +619,8 @@ function Get-PeersJson {
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 获取任务列表超时，跳过本次提交 ] -ForegroundColor Yellow
+		$Global:SUBMIT = 0
+		return
 	}
 	Write-Host (Get-Date) [ 分析 $ACTIVE.Count 个活动任务 ] -ForegroundColor Cyan
 	$SUBMITHASH = @"
