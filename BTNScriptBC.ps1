@@ -626,7 +626,7 @@ function Get-TaskPeers {
 				$rt_upload_speed = 0
 			}
 			1 {
-				if ($downloader_progress -eq 1 -or $peer_flag -Cnotmatch 'u') {
+				if (($downloader_progress -eq 1 -or $peer_flag -Cnotmatch 'D|u') -and $peer_progress -ne 1) {
 					$rt_download_speed = 0
 					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 				} else {
