@@ -261,6 +261,8 @@ function Test-WebUIPort {
 		} else {
 			Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
 			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+			pause
+			$Main_Tool_Icon.Dispose()
 			exit
 		}
 	}
@@ -294,8 +296,10 @@ while ($UIRESP.StatusCode -ne 200) {
 			Write-Host (Get-Date) [ 目标网页认证失败，请确认 WebUI 的账号与密码 ] -ForegroundColor Red
 		} else {
 			Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
-			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 		}
+		Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+		pause
+		$Main_Tool_Icon.Dispose()
 		return
 	}
 	switch ($UIRESP.StatusCode) {
@@ -316,6 +320,8 @@ while ($UIRESP.StatusCode -ne 200) {
 			} else {
 				Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
 				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+				pause
+				$Main_Tool_Icon.Dispose()
 				return
 			}
 		}
@@ -379,6 +385,8 @@ function Get-BTNConfig {
 			if ($_.Exception.Response.StatusCode.value__ -Match '403|400') {
 				Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请排查后重试 ] -ForegroundColor Red
 				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+				pause
+				$Main_Tool_Icon.Dispose()
 				exit
 			}
 			$RETRY++
@@ -390,6 +398,8 @@ function Get-BTNConfig {
 				} else {
 					Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，请确认服务器后重试 ] -ForegroundColor Red
 					Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+					pause
+					$Main_Tool_Icon.Dispose()
 					exit
 				}
 			}
