@@ -16,6 +16,21 @@ if ((Fltmc).Count -eq 3) {
 	return
 }
 
+# 名称变更，此部分保留一段时间
+$OLDPATH = "$ENV:USERPROFILE\BTN_BC"
+$NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
+if (Test-Path $NEWPATH) {
+	Remove-Item $OLDPATH -Force -ErrorAction Ignore
+} else {
+	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
+}
+Get-NetFirewallRule -DisplayName BTN_* |% {Set-NetFirewallRule $_.Name -NewDisplayName $_.DisplayName.Replace('BTN_','BTNScript_')}
+if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
+	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
+	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
+}
+
 $TESTGUID = "{62809d89-9d3b-486b-808f-8c893c1c3378}"
 Remove-NetFirewallDynamicKeywordAddress -Id $TESTGUID -ErrorAction Ignore
 if (New-NetFirewallDynamicKeywordAddress -Id $TESTGUID -Keyword "BT_BAN_TEST" -Address 1.2.3.4 -ErrorAction Ignore) {
@@ -56,7 +71,7 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 # 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
-	New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
+	New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTNScriptBC -ErrorAction Ignore | Out-Null
 	echo ""
 	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
 	echo ""
@@ -109,23 +124,23 @@ function Invoke-Setup {
 	}
 	$BTPATH = $BTINFO.FileName
 	$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
-	Remove-NetFirewallRule -DisplayName "BTN_$BTNAME" -ErrorAction Ignore
-	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-	New-NetFirewallRule -DisplayName "BTN_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $env:USERPROFILE\BTN_BC\STARTUP.cmd
+	Remove-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -ErrorAction Ignore
+	New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $env:USERPROFILE\BTNScriptBC\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
-	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTN_BC\STARTUP.cmd"
+	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTNScriptBC\STARTUP.cmd"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTN_BC_STARTUP -InputObject $TASK | Out-Null
+	Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
 	echo ""
 	echo "  程序路径为：$BTPATH"
 	echo ""
 	echo "  已配置以下过滤规则"
 	echo ""
-	Get-NetFirewallRule -DisplayName BTN_* | Select-Object -Property Displayname,Direction | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
+	Get-NetFirewallRule -DisplayName BTNScript_* | Select-Object -Property Displayname,Direction | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
 	echo ""
 	echo "  已配置以下动态关键字"
 	echo ""
@@ -133,7 +148,7 @@ function Invoke-Setup {
 	echo ""
 	echo "  已配置以下自启动任务计划"
 	echo ""
-	echo "  BTN_BC_STARTUP"
+	echo "  BTNScriptBC_STARTUP"
 	echo ""
 	echo "  ----------------------------------"
 	echo "  请填写用户信息（点击鼠标右键粘贴）"
@@ -184,7 +199,8 @@ APPSEC = $APPSEC
 
 # 用户配置与动态关键字信息的初始化
 # 仅在检测不到 USERINFO.txt 时，执行初始配置
-$INFOPATH = "$ENV:USERPROFILE\BTN_BC\USERINFO.txt"
+$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
+$INFOPATH = "$USERPATH\USERINFO.txt"
 $DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
 if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
@@ -298,6 +314,27 @@ Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
 Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor Cyan
 Write-Host (Get-Date) [ 点击通知区域图标以显示／隐藏窗口 ] -ForegroundColor Cyan
+$RULESLIST = Get-NetFirewallRule -DisplayName BTNScript_* | Sort-Object DisplayName
+if ($RULESLIST) {
+	Write-Host (Get-Date) [ 以下应用程序已配置过滤规则 ] -ForegroundColor Cyan
+	($RULESLIST | Get-NetFirewallApplicationFilter).Program | Unique |% {Write-Host (Get-Date) [ $_ ] -ForegroundColor Green}
+	$TESTSTR = -Join $RULESLIST.Enabled
+	if ($TESTSTR -Match "False") {
+		Write-Host (Get-Date) [ 以下过滤规则未启用 ] -ForegroundColor Yellow
+		Foreach ($RULE in $RULESLIST) {
+			if ($RULE.Enabled -Match "False") {
+				switch ($RULE.Direction) {
+					Inbound {$DIRE = "入站规则"}
+					Outbound {$DIRE = "出站规则"}
+				}
+				Write-Host (Get-Date) [ $RULE.DisplayName $DIRE ] -ForegroundColor Yellow
+			}
+		}
+	}
+	if ($TESTSTR -Notmatch "True") {Write-Host (Get-Date) [ 没有启用的过滤规则 ] -ForegroundColor Yellow}
+} else {
+	Write-Host (Get-Date) [ 没有配置过滤规则 ] -ForegroundColor Yellow
+}
 
 # 载入用户信息并定义基本变量
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
@@ -346,6 +383,7 @@ function Test-WebUIPort {
 		} else {
 			Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
 			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+			$Main_Tool_Icon.Dispose()
 			exit
 		}
 	}
@@ -381,6 +419,7 @@ while ($UIRESP.StatusCode -ne 200) {
 			Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
 			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 		}
+		$Main_Tool_Icon.Dispose()
 		return
 	}
 	switch ($UIRESP.StatusCode) {
@@ -401,6 +440,7 @@ while ($UIRESP.StatusCode -ne 200) {
 			} else {
 				Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
 				Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+				$Main_Tool_Icon.Dispose()
 				return
 			}
 		}
@@ -454,7 +494,7 @@ function Get-BTNConfig {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
-				$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
+				$NEWCONFIG | ConvertTo-Json | Out-File $USERPATH\CONFIG.json
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version.SubString(0,8) ] -ForegroundColor Green
 			}
 			break
@@ -468,8 +508,8 @@ function Get-BTNConfig {
 			}
 			$RETRY++
 			if ($RETRY -gt 3) {
-				if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
-					$NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
+				if (Test-Path $USERPATH\CONFIG.json) {
+					$NEWCONFIG = Get-Content $USERPATH\CONFIG.json | ConvertFrom-Json
 					Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
 					break
 				} else {
@@ -527,7 +567,7 @@ function Get-TaskPeers {
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$_ | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
+			$_ | Out-File -Append $USERPATH\UNKNOWN.txt
 			return
 		}
 		switch -Regex ($ip_address) {
@@ -640,8 +680,8 @@ function Get-PeersJson {
 }
 
 # JSON 打包为 Gzip 并提交至 BTN 服务器
-$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
-$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
+$PEERSJSON = "$USERPATH\PEERS.json"
+$PEERSGZIP = "$USERPATH\PEERS.gzip"
 function Invoke-SumbitPeers {
 	if ($SUBMIT -eq 0) {
 		Write-Host (Get-Date) [ 没有需要提交的数据 ] -ForegroundColor Green
@@ -668,8 +708,8 @@ function Invoke-SumbitPeers {
 }
 
 # 更新 BTN 封禁规则
-$RULESJSON = "$ENV:USERPROFILE\BTN_BC\RULES.json"
-$BTNIPLIST = "$ENV:USERPROFILE\BTN_BC\RULES.txt"
+$RULESJSON = "$USERPATH\RULES.json"
+$BTNIPLIST = "$USERPATH\RULES.txt"
 function Get-BTNRules {
 	if (Test-Path $RULESJSON) {
 		$REVURL = "?rev=$(([Regex]::Matches((Get-Content $RULESJSON | Select-String 'version'),'[0-9a-f]{8}')).Value)"
@@ -701,7 +741,7 @@ function Get-BTNRules {
 }
 
 # 更新 IP 黑名单订阅
-$ALLIPLIST = "$ENV:USERPROFILE\BTN_BC\IPLIST.txt"
+$ALLIPLIST = "$USERPATH\IPLIST.txt"
 function Get-IPList {
 	try {
 		$NEWIPLIST = Invoke-RestMethod -TimeoutSec 30 $IPLISTURL
