@@ -626,12 +626,12 @@ function Get-TaskPeers {
 				$rt_upload_speed = 0
 			}
 			1 {
-				if (($downloader_progress -eq 1 -or $peer_flag -Cnotmatch 'D|u') -and $peer_progress -ne 1) {
-					$rt_download_speed = 0
-					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-				} else {
+				if (($peer_progress -eq 1 -or $peer_flag -Cmatch 'D|u' -or $peer_flag -Cnotmatch 'K|U') -and $downloader_progress -ne 1) {
 					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 					$rt_upload_speed = 0
+				} else {
+					$rt_download_speed = 0
+					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 				}
 			}
 			2 {
