@@ -26,7 +26,7 @@ if (Test-Path $NEWPATH) {
 }
 Get-NetFirewallRule -DisplayName BTN_* |% {Set-NetFirewallRule $_.Name -NewDisplayName $_.DisplayName.Replace('BTN_','BTNScript_')}
 if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
-	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
+	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd")
 	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
 }
