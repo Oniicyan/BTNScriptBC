@@ -38,6 +38,7 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_NOFW_STARTUP -ErrorAction Ignore) {
 	Unregister-ScheduledTask BTN_BC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTNScriptBC_NOFW_STARTUP -InputObject $NEWTASK | Out-Null
 }
+Set-ScheduledTask BTNScriptBC_NOFW_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 
 # 初始配置
 function Invoke-Setup {
