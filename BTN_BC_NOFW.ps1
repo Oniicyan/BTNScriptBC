@@ -25,9 +25,23 @@ try {
 	}
 }
 
+# 名称变更，此部分保留一段时间
+$OLDPATH = "$ENV:USERPROFILE\BTN_BC"
+$NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
+if (Test-Path $NEWPATH) {
+	Remove-Item $OLDPATH -Force -ErrorAction Ignore
+} else {
+	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
+}
+if ($OLDTASK = Get-ScheduledTask BTN_BC_NOFW_STARTUP -ErrorAction Ignore) {
+	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
+	Unregister-ScheduledTask BTN_BC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_NOFW_STARTUP -InputObject $NEWTASK | Out-Null
+}
+
 # 初始配置
 function Invoke-Setup {
-	New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTN_BC -ErrorAction Ignore | Out-Null
+	New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
 	echo ""
 	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
 	echo ""
@@ -46,18 +60,18 @@ function Invoke-Setup {
 	echo ""
 	pause
 	Clear-Host
-	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $env:USERPROFILE\BTN_BC\STARTUP.cmd
+	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
-	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTN_BC\STARTUP.cmd"
+	$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-	Unregister-ScheduledTask BTN_BC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTN_BC_NOFW_STARTUP -InputObject $TASK | Out-Null
+	Unregister-ScheduledTask BTNScriptBC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_NOFW_STARTUP -InputObject $TASK | Out-Null
 	echo ""
 	echo "  已配置以下自启动任务计划"
 	echo ""
-	echo "  BTN_BC_NOFW_STARTUP"
+	echo "  BTNScriptBC_NOFW_STARTUP"
 	echo ""
 	echo "  ----------------------------------"
 	echo "  请填写用户信息（点击鼠标右键粘贴）"
@@ -108,7 +122,8 @@ APPSEC = $APPSEC
 
 # 用户配置与动态关键字信息的初始化
 # 仅在检测不到 USERINFO.txt 时，执行初始配置
-$INFOPATH = "$ENV:USERPROFILE\BTN_BC\USERINFO.txt"
+$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
+$INFOPATH = "$USERPATH\USERINFO.txt"
 if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
 	Invoke-Setup
@@ -354,7 +369,7 @@ function Get-BTNConfig {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
 			if ($NOWCONFIG.ability.reconfigure.version -ne $NEWCONFIG.ability.reconfigure.version) {
-				$NEWCONFIG | ConvertTo-Json | Out-File $ENV:USERPROFILE\BTN_BC\CONFIG.json
+				$NEWCONFIG | ConvertTo-Json | Out-File $USERPATH\CONFIG.json
 				Write-Host (Get-Date) [ 当前 BTN 服务器配置版本为 $NEWCONFIG.ability.reconfigure.version.SubString(0,8) ] -ForegroundColor Green
 			}
 			break
@@ -368,8 +383,8 @@ function Get-BTNConfig {
 			}
 			$RETRY++
 			if ($RETRY -gt 3) {
-				if (Test-Path $ENV:USERPROFILE\BTN_BC\CONFIG.json) {
-					$NEWCONFIG = Get-Content $ENV:USERPROFILE\BTN_BC\CONFIG.json | ConvertFrom-Json
+				if (Test-Path $USERPATH\CONFIG.json) {
+					$NEWCONFIG = Get-Content $USERPATH\CONFIG.json | ConvertFrom-Json
 					Write-Host (Get-Date) [ 获取 BTN 服务器配置失败，使用上次获取的配置 ] -ForegroundColor Yellow
 					break
 				} else {
@@ -427,7 +442,7 @@ function Get-TaskPeers {
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$_ | Out-File -Append $ENV:USERPROFILE\BTN_BC\UNKNOWN.txt
+			$_ | Out-File -Append $USERPATH\UNKNOWN.txt
 			return
 		}
 		switch -Regex ($ip_address) {
@@ -540,8 +555,8 @@ function Get-PeersJson {
 }
 
 # JSON 打包为 Gzip 并提交至 BTN 服务器
-$PEERSJSON = "$ENV:USERPROFILE\BTN_BC\PEERS.json"
-$PEERSGZIP = "$ENV:USERPROFILE\BTN_BC\PEERS.gzip"
+$PEERSJSON = "$USERPATH\PEERS.json"
+$PEERSGZIP = "$USERPATH\PEERS.gzip"
 function Invoke-SumbitPeers {
 	if ($SUBMIT -eq 0) {
 		Write-Host (Get-Date) [ 没有需要提交的数据 ] -ForegroundColor Green
