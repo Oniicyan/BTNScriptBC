@@ -6,7 +6,22 @@ if ((Fltmc).Count -eq 3) {
 	exit
 }
 
-$RULELIST = Get-NetFirewallRule -DisplayName BTN_* | Select-Object -Property Displayname, Direction
+# 名称变更，此部分保留一段时间
+$OLDPATH = "$ENV:USERPROFILE\BTN_BC"
+$NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
+if (Test-Path $NEWPATH) {
+	Remove-Item $OLDPATH -Force -ErrorAction Ignore
+} else {
+	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
+}
+Get-NetFirewallRule -DisplayName BTN_* |% {Set-NetFirewallRule $_.Name -NewDisplayName $_.DisplayName.Replace('BTN_','BTNScript_')}
+if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP) {
+	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
+	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
+}
+
+$RULELIST = Get-NetFirewallRule -DisplayName BTNScript_* | Select-Object -Property Displayname, Direction
 if ($RULELIST) {
 	echo ""
 	echo "  清除以下过滤规则"
@@ -20,7 +35,7 @@ if ($RULELIST) {
 	echo "  没有需要清除的过滤规则"
 }
 
-$TASKLIST = (Get-ScheduledTask BTN_BC_*).TaskName
+$TASKLIST = (Get-ScheduledTask BTNScriptBC_*).TaskName
 if ($TASKLIST) {
 	echo ""
 	echo "  清除以下任务计划"
@@ -48,16 +63,16 @@ if ($DYKWNAME = (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction I
 	echo "  没有需要清除的动态关键字"
 }
 
-$FILELIST = (Get-Childitem $env:USERPROFILE\BTN_BC -Recurse).FullName
+$FILELIST = (Get-Childitem $env:USERPROFILE\BTNScriptBC -Recurse).FullName
 if ($FILELIST) {
 	echo ""
 	echo "  清除以下脚本文件"
 	echo ""
-	echo "  $env:USERPROFILE\BTN_BC"
+	echo "  $env:USERPROFILE\BTNScriptBC"
 	$FILELIST | ForEach-Object {'  ' + $_}
 	echo ""
 	pause
-	Remove-Item $env:USERPROFILE\BTN_BC -Force -Recurse -ErrorAction Ignore
+	Remove-Item $env:USERPROFILE\BTNScriptBC -Force -Recurse -ErrorAction Ignore
 } else {
 	echo ""
 	echo "  没有需要清除的脚本文件"
