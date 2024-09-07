@@ -71,7 +71,7 @@ if ((Get-NetFirewallProfile).Enabled -contains 0) {
 # 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
-	New-Item -ItemType Directory -Path $ENV:USERPROFILE\BTNScriptBC -ErrorAction Ignore | Out-Null
+	New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
 	echo ""
 	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
 	echo ""
@@ -127,11 +127,11 @@ function Invoke-Setup {
 	Remove-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -ErrorAction Ignore
 	New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
 	New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $env:USERPROFILE\BTNScriptBC\STARTUP.cmd
+	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
 	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
 	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
-	$ACTION = New-ScheduledTaskAction -Execute "$env:USERPROFILE\BTNScriptBC\STARTUP.cmd"
+	$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
 	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
 	Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
