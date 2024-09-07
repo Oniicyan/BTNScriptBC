@@ -418,8 +418,8 @@ while ($UIRESP.StatusCode -ne 200) {
 			Write-Host (Get-Date) [ 目标网页认证失败，请确认 WebUI 的账号与密码 ] -ForegroundColor Red
 		} else {
 			Write-Host (Get-Date) [ 目标网页访问失败，请排查后重试 ] -ForegroundColor Red
-			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 		}
+		Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
 		pause
 		$Main_Tool_Icon.Dispose()
 		return
