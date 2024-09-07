@@ -1,4 +1,4 @@
-/ /BTN_BC.ps1 301
-/add /BTN_BC_ADDFW.ps1 301
-/nofw /BTN_BC_NOFW.ps1 301
-/unset /BTN_BC_UNSET.ps1
+/ /BTNScriptBC.ps1 301
+/add /BTNScriptBC_ADDFW.ps1 301
+/nofw /BTNScriptBC_NOFW.ps1 301
+/unset /BTNScriptBC_UNSET.ps1
