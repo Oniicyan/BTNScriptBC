@@ -24,7 +24,15 @@ if (Test-Path $NEWPATH) {
 } else {
 	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
 }
-Get-NetFirewallRule -DisplayName BTN_* |% {Set-NetFirewallRule $_.Name -NewDisplayName $_.DisplayName.Replace('BTN_','BTNScript_')}
+if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Unique) {
+	$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+	foreach ($APPPATH in $OLDLIST) {
+		$APPNAME = [System.IO.Path]::GetFileName($APPPATH)
+		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Inbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Outbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	}
+	Remove-NetFirewallRule -DisplayName BTN_*
+}
 if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
 	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
@@ -322,7 +330,7 @@ if ($RULESLIST) {
 	$TESTSTR = -Join $RULESLIST.Enabled
 	if ($TESTSTR -Match "False") {
 		Write-Host (Get-Date) [ 以下过滤规则未启用 ] -ForegroundColor Yellow
-		Foreach ($RULE in $RULESLIST) {
+		foreach ($RULE in $RULESLIST) {
 			if ($RULE.Enabled -Match "False") {
 				switch ($RULE.Direction) {
 					Inbound {$DIRE = "入站规则"}
