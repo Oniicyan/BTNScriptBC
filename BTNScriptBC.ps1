@@ -56,7 +56,7 @@ if (New-NetFirewallDynamicKeywordAddress -Id $TESTGUID -Keyword "BT_BAN_TEST" -A
 }
 
 if ((Get-NetFirewallProfile).Enabled -contains 0) {
-	if ([string](Get-NetFirewallProfile |% {
+	if ([string](Get-NetFirewallProfile | ForEach-Object {
 	if ($_.Enabled -eq 1) {$_.Name}})`
 	-Notmatch (((Get-NetFirewallSetting -PolicyStore ActiveStore).ActiveProfile) -Replace ', ','|')) {
 		echo ""
@@ -88,7 +88,7 @@ function Invoke-Setup {
 	echo ""
 	echo "  提交内容包括活动任务的种子识别符与种子大小"
 	echo ""
-	echo "  种子识别符由种子特征码经过不可逆哈希算法生成，无法复原下载内容"
+	echo "  种子识别符由种子特征码经过不可逆哈希算法生成，不会透露用户的下载内容"
 	echo ""
 	echo "  更多信息请查阅以下网页"
 	echo ""
@@ -326,7 +326,7 @@ Write-Host (Get-Date) [ 点击通知区域图标以显示／隐藏窗口 ] -Fore
 $RULESLIST = Get-NetFirewallRule -DisplayName BTNScript_* | Sort-Object DisplayName
 if ($RULESLIST) {
 	Write-Host (Get-Date) [ 以下应用程序已配置过滤规则 ] -ForegroundColor Cyan
-	($RULESLIST | Get-NetFirewallApplicationFilter).Program | Unique |% {Write-Host (Get-Date) [ $_ ] -ForegroundColor Green}
+	($RULESLIST | Get-NetFirewallApplicationFilter).Program | Unique | ForEach-Object {Write-Host (Get-Date) [ $_ ] -ForegroundColor Green}
 	$TESTSTR = -Join $RULESLIST.Enabled
 	if ($TESTSTR -Match "False") {
 		Write-Host (Get-Date) [ 以下过滤规则未启用 ] -ForegroundColor Yellow
@@ -574,7 +574,7 @@ function Get-TaskPeers {
 		$torrent_size = Invoke-Expression $BIBYTE
 	}
 	$downloader_progress = Get-QuadFloat ([Regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
-	$PEERS -Split '<tr>' | Select-String '>[IciC_]{4}<' |% {
+	$PEERS -Split '<tr>' | Select-String '>[IciC_]{4}<' | ForEach-Object {
 		if ($_ -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
 			$ip_address = $Matches[0].Split(':')[0]
 			$peer_port = $Matches[0].Split(':')[1]
@@ -671,7 +671,7 @@ function Get-TaskPeers {
 function Get-PeersJson {
 	Test-WebUIPort
 	try {
-		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
+		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' | ForEach-Object {"${UIHOME}task_detail?id=" + $_}
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 获取任务列表超时，跳过本次提交 ] -ForegroundColor Yellow
@@ -685,7 +685,7 @@ function Get-PeersJson {
 	"peers": []
 }
 "@ | ConvertFrom-Json
-	$ACTIVE |% {Get-TaskPeers $_}
+	$ACTIVE | ForEach-Object {Get-TaskPeers $_}
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 	if ($SUBMITHASH.peers.Count -eq 0) {
 		$Global:SUBMIT = 0
@@ -814,7 +814,7 @@ while ($True) {
 		$NOWCONFIG.ability | Add-Member iplist @{}
 		$NOWCONFIG.ability.iplist | Add-Member interval 3600000
 		$NOWCONFIG.ability.iplist | Add-Member random_initial_delay 1
-		$NOWCONFIG.ability.PSObject.Properties.Name |% {
+		$NOWCONFIG.ability.PSObject.Properties.Name | ForEach-Object {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
 			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000))) -ErrorAction Ignore
 		}
