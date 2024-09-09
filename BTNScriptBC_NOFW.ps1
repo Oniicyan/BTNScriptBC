@@ -50,7 +50,7 @@ function Invoke-Setup {
 	echo ""
 	echo "  提交内容包括活动任务的种子识别符与种子大小"
 	echo ""
-	echo "  种子识别符由种子特征码经过不可逆哈希算法生成，无法复原下载内容"
+	echo "  种子识别符由种子特征码经过不可逆哈希算法生成，不会透露用户的下载内容"
 	echo ""
 	echo "  更多信息请查阅以下网页"
 	echo ""
@@ -444,7 +444,7 @@ function Get-TaskPeers {
 		$torrent_size = Invoke-Expression $BIBYTE
 	}
 	$downloader_progress = Get-QuadFloat ([Regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
-	$PEERS -Split '<tr>' | Select-String '>[IciC_]{4}<' |% {
+	$PEERS -Split '<tr>' | Select-String '>[IciC_]{4}<' | ForEach-Object {
 		if ($_ -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
 			$ip_address = $Matches[0].Split(':')[0]
 			$peer_port = $Matches[0].Split(':')[1]
@@ -504,12 +504,12 @@ function Get-TaskPeers {
 				$rt_upload_speed = 0
 			}
 			1 {
-				if (($peer_progress -eq 1 -or $peer_flag -Cmatch 'D|u' -or $peer_flag -Cnotmatch 'K|U') -and $downloader_progress -ne 1) {
-					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-					$rt_upload_speed = 0
-				} else {
+				if ($downloader_progress -eq 1 -or $peer_flag -Cnotmatch 'u') {
 					$rt_download_speed = 0
 					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+				} else {
+					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
+					$rt_upload_speed = 0
 				}
 			}
 			2 {
@@ -541,7 +541,7 @@ function Get-TaskPeers {
 function Get-PeersJson {
 	Test-WebUIPort
 	try {
-		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' |% {"${UIHOME}task_detail?id=" + $_}
+		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' | ForEach-Object {"${UIHOME}task_detail?id=" + $_}
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		Write-Host (Get-Date) [ 获取任务列表超时，跳过本次提交 ] -ForegroundColor Yellow
@@ -555,7 +555,7 @@ function Get-PeersJson {
 	"peers": []
 }
 "@ | ConvertFrom-Json
-	$ACTIVE |% {Get-TaskPeers $_}
+	$ACTIVE | ForEach-Object {Get-TaskPeers $_}
 	Write-Host (Get-Date) [ 提取 $($SUBMITHASH.peers.Count) 个活动 Peers，耗时 $((([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) - $SUBMITHASH.populate_time) / 1000) 秒 ] -ForegroundColor Cyan
 	if ($SUBMITHASH.peers.Count -eq 0) {
 		$Global:SUBMIT = 0
@@ -614,7 +614,7 @@ while ($True) {
 		$NOWCONFIG.ability.reconfigure.interval -ne $NEWCONFIG.ability.reconfigure.interval
 	) {
 		$NOWCONFIG = $NEWCONFIG
-		$NOWCONFIG.ability.PSObject.Properties.Name |% {
+		$NOWCONFIG.ability.PSObject.Properties.Name | ForEach-Object {
 			$DELAY = Get-Random -Maximum $NOWCONFIG.ability.$_.random_initial_delay
 			$NOWCONFIG.ability.$_ | Add-Member next ((Get-Date) + (New-TimeSpan -Seconds (($NOWCONFIG.ability.$_.interval + $DELAY) / 1000)))
 		}
