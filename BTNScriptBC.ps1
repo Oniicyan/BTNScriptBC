@@ -24,7 +24,7 @@ if (Test-Path $NEWPATH) {
 } else {
 	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
 }
-if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Sort-Object | Unique) {
+if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Sort-Object | Get-Unique) {
 	$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
 	foreach ($APPPATH in $OLDLIST) {
 		$APPNAME = [System.IO.Path]::GetFileName($APPPATH)
@@ -326,7 +326,7 @@ Write-Host (Get-Date) [ 点击通知区域图标以显示／隐藏窗口 ] -Fore
 $RULESLIST = Get-NetFirewallRule -DisplayName BTNScript_* | Sort-Object DisplayName
 if ($RULESLIST) {
 	Write-Host (Get-Date) [ 以下应用程序已配置过滤规则 ] -ForegroundColor Cyan
-	($RULESLIST | Get-NetFirewallApplicationFilter).Program | Sort-Object | Unique | ForEach-Object {Write-Host (Get-Date) [ $_ ] -ForegroundColor Green}
+	($RULESLIST | Get-NetFirewallApplicationFilter).Program | Sort-Object | Get-Unique | ForEach-Object {Write-Host (Get-Date) [ $_ ] -ForegroundColor Green}
 	$TESTSTR = -Join $RULESLIST.Enabled
 	if ($TESTSTR -Match "False") {
 		Write-Host (Get-Date) [ 以下过滤规则未启用 ] -ForegroundColor Yellow
