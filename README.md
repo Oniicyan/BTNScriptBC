@@ -49,23 +49,39 @@ https://btn-prod.ghostchu-services.top/
 
 因此，`nofw` 脚本不强制要求管理员权限。
 
-## 自动配置
-
-### 启用配置
+## 启用配置
 
 执行
 
 `iex (irm btn-bc.pages.dev)`
 
-选择需要启用过滤的 BT 应用程序文件，并按提示填写 BitComet WebUI 与 BTN 服务器的访问信息即可完成配置
+依照提示配置过滤规则、启动方式，并按填写 BitComet WebUI 与 BTN 服务器的访问信息即可完成配置
 
-### 清除配置
+## 清除配置
 
 执行
 
-`iex (irm bt-ban.pages.dev/unset)`
+`iex (irm btn-bc.pages.dev/unset)`
 
 确认清除的项目后按 Enter 键继续
+
+## 可选配置
+
+执行以下配置无过滤规则脚本
+
+iex (irm btn-bc.pages.dev/nofw)
+
+执行以下命令添加过滤规则
+
+iex (irm btn-bc.pages.dev/add)
+
+执行以下命令重建桌面快捷方式
+
+iex (irm bt-ban.pages.dev/lnk)
+
+执行以下命令清理 Windows 防火墙中的冗余规则
+
+iex (irm btn-bc.pages.dev/clean)
 
 # 安全提醒
 
