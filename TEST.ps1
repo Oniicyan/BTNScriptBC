@@ -376,8 +376,9 @@ $Menu_Show.add_Click({
 Clear-Host
 [System.GC]::Collect()
 
+pause
+
 # 启动信息
-Clear-Host
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
 Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor Cyan
