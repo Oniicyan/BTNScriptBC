@@ -376,6 +376,8 @@ $Menu_Show.add_Click({
 Clear-Host
 [System.GC]::Collect()
 
+pause
+
 # 启动信息
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
