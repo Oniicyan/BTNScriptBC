@@ -12,7 +12,36 @@ if ((Fltmc).Count -eq 3) {
 	return
 }
 
-if ($RULELIST = Get-NetFirewallRule -DisplayName BT_BAN_*) {
+# 名称变更，此部分保留一段时间
+$OLDPATH = "$ENV:USERPROFILE\BTN_BC"
+$NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
+if (Test-Path $NEWPATH) {
+	Remove-Item $OLDPATH -Force -ErrorAction Ignore
+} else {
+	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
+}
+if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Sort-Object | Get-Unique) {
+	$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+	foreach ($APPPATH in $OLDLIST) {
+		$APPNAME = [System.IO.Path]::GetFileName($APPPATH)
+		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Inbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Outbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	}
+	Remove-NetFirewallRule -DisplayName BTN_*
+}
+if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
+	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
+	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
+}
+Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
+
+Get-Item $ENV:TEMP\BTNScriptBC_* | ForEach-Object {
+	Stop-Process ($_.Name -Split '_')[-1] -Force -ErrorAction Ignore
+	Remove-Item $_
+}
+
+if ($RULELIST = Get-NetFirewallRule -DisplayName BTNScript_*) {
 	Write-Host "`n  清除以下过滤规则`n"
 	$RULELIST | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
 	Write-Host
@@ -22,7 +51,7 @@ if ($RULELIST = Get-NetFirewallRule -DisplayName BT_BAN_*) {
 	Write-Host "`n  没有需要清除的过滤规则"
 }
 
-if ($TASKLIST = Get-ScheduledTask BT_BAN_*) {
+if ($TASKLIST = Get-ScheduledTask BTNScriptBC_*) {
 	Write-Host "`n  清除以下任务计划`n"
 	$TASKLIST.TaskName | ForEach-Object {'  ' + $_}
 	Write-Host
@@ -32,7 +61,17 @@ if ($TASKLIST = Get-ScheduledTask BT_BAN_*) {
 	Write-Host "`n  没有需要清除的任务计划"
 }
 
-$GUID = '{3817fa89-3f21-49ca-a4a4-80541ddf7465}'
+if ($LINKPATH = Get-Item "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk" -ErrorAction Ignore) {
+	Write-Host "`n  清除以下桌面快捷方式"
+	Write-Host "`n  BTNScriptBC.lnk"
+	Write-Host
+	pause
+	Remove-Item $LINKPATH -Force -ErrorAction Ignore
+} else {
+	Write-Host "`n  没有需要清除的桌面快捷方式"
+}
+
+$GUID = '{da62ac48-4707-4adf-97ea-676470a460f5}'
 if ($DYKW = Get-NetFirewallDynamicKeywordAddress -Id $GUID -ErrorAction Ignore) {
 	Write-Host "`n  清除以下动态关键字`n"
 	$DYKW.Keyword | ForEach-Object {'  ' + $_}
@@ -43,13 +82,13 @@ if ($DYKW = Get-NetFirewallDynamicKeywordAddress -Id $GUID -ErrorAction Ignore) 
 	Write-Host "`n  没有需要清除的动态关键字"
 }
 
-if (Test-Path $ENV:USERPROFILE\BT_BAN) {
+if (Test-Path $ENV:USERPROFILE\BTNScriptBC) {
 	Write-Host "`n  清除以下脚本文件"
-	Write-Host "`n  $ENV:USERPROFILE\BT_BAN"
-	(Get-Childitem $ENV:USERPROFILE\BT_BAN -Recurse).FullName | ForEach-Object {'  ' + $_}
+	Write-Host "`n  $ENV:USERPROFILE\BTNScriptBC"
+	(Get-Childitem $ENV:USERPROFILE\BTNScriptBC -Recurse).FullName | ForEach-Object {'  ' + $_}
 	Write-Host
 	pause
-	Remove-Item $ENV:USERPROFILE\BT_BAN -Force -Recurse -ErrorAction Ignore
+	Remove-Item $ENV:USERPROFILE\BTNScriptBC -Force -Recurse -ErrorAction Ignore
 } else {
 	Write-Host "`n  没有需要清除的脚本文件"
 }
