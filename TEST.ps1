@@ -147,7 +147,8 @@ function Invoke-Setup {
 			New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
 		}
 		default {
-			$FWLIST = (Get-NetFirewallApplicationFilter).Program | Select-String $BTSCAN | Sort-Object | Get-Unique
+			$BTPTRN = 'Azureus\.exe|BitComet\.exe|BitComet_.*\.exe|biglybt\.exe|BitTorrent\.exe|btweb\.exe|deluge\.exe|qbittorrent\.exe|transmission-qt\.exe|uTorrent\.exe|utweb\.exe|tixati\.exe'
+			$FWLIST = (Get-NetFirewallApplicationFilter).Program | Select-String $BTPTRN | Sort-Object | Get-Unique
 			$BTLIST =@()
 			foreach ($BTPATH in $FWLIST) {
 				if ($BTPATH -Match '^%') {
