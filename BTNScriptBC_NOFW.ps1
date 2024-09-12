@@ -47,9 +47,9 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_* -ErrorAction Ignore) {
 }
 Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 if (Test-Path $APPWTPATH) {
-	"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $NEWPATH\STARTUP.cmd
-} else {
-	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $NEWPATH\STARTUP.cmd
+	if ((Get-Content $NEWPATH\STARTUP.cmd) -Notmatch 'wt\.exe') {
+		"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $NEWPATH\STARTUP.cmd
+	}
 }
 
 # 检测重复运行
