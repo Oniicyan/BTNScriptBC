@@ -46,7 +46,7 @@ if ($RULELIST = Get-NetFirewallRule -DisplayName BTNScript_*) {
 	$RULELIST | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
 	Write-Host
 	pause
-	Remove-NetFirewallRule $RULELIST
+	Remove-NetFirewallRule BTNScript_*
 } else {
 	Write-Host "`n  没有需要清除的过滤规则"
 }
