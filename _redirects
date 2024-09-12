@@ -3,4 +3,5 @@
 /nofw /BTNScriptBC_NOFW.ps1 301
 /lnk /BTNScriptBC_LINK.ps1 301
 /unset /BTNScriptBC_UNSET.ps1
+/clean /Clean_Firewall_Rules.ps1 301
 /test /TEST.ps1
