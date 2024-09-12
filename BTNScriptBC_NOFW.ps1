@@ -1,23 +1,30 @@
-# BTN 服务器与版本信息在此定义
+# BTN 服务器与版本信息等在此定义
 Remove-Variable * -ErrorAction Ignore
-$Host.UI.RawUI.WindowTitle = "BTNScriptBC - nofw"
+$Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $SCRIPTURL = "btn-bc.pages.dev/nofw"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/0.0.1"
+$APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+
+Write-Host
 
 # 检测 IE 引擎是否可用
-# 不可用时提示以管理员权限执行
+# 不可用时提权执行
 try {
-	$null = iwr baidu.com
+	Invoke-WebRequest baidu.com | Out-Null
 } catch {
 	if ($_ -Match 'Internet Explorer') {
 		if ((Fltmc).Count -eq 3) {
-			echo ""
-			echo "  当前 IE 引擎不可用"
-			echo ""
-			echo "  请以管理员权限执行，以绕过 IE 初始检测"
-			echo ""
+			if (Test-Path $APPWTPATH) {
+				$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
+			} else {
+				$PROCESS = "powershell -ArgumentList `"$($MyInvocation.MyCommand.Definition)`""
+			}
+			Write-Host "  当前 IE 引擎不可用`n"
+			Write-Host "  10 秒后以管理员权限继续执行，以绕过 IE 初始检测`n"
+			timeout 10
+			Invoke-Expression "Start-Process $PROCESS -Verb RunAs"
 			return
 		} else {
 			Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
@@ -33,64 +40,99 @@ if (Test-Path $NEWPATH) {
 } else {
 	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
 }
-if ($OLDTASK = Get-ScheduledTask BTN_BC_NOFW_STARTUP -ErrorAction Ignore) {
+if ($OLDTASK = Get-ScheduledTask BTN_BC_* -ErrorAction Ignore) {
 	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
-	Unregister-ScheduledTask BTN_BC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTNScriptBC_NOFW_STARTUP -InputObject $NEWTASK | Out-Null
+	Unregister-ScheduledTask BTN_BC_* -Confirm:$false -ErrorAction Ignore
+	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
 }
-Set-ScheduledTask BTNScriptBC_NOFW_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
+Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
+
+# 检测重复运行
+# $MUTEX = New-Object System.Threading.Mutex($False,'BTNScriptBC')
+# if (!($MUTEX.WaitOne(0,$False))) {
+#	Write-Host "  请关闭正在运行的脚本后重试"
+#	pause
+#	return
+# }
+Get-Item $ENV:TEMP\BTNScriptBC_* -Exclude *$PID | ForEach-Object {
+	Stop-Process ($_.Name -Split '_')[-1] -Force -ErrorAction Ignore
+	Remove-Item $_
+}
+New-Item $ENV:TEMP\BTNScriptBC_$PID -ErrorAction Ignore | Out-Null
+try {
+	[System.IO.File]::Open("$ENV:TEMP\BTNScriptBC_$PID",[System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::None) | Out-Null
+} catch {}
 
 # 初始配置
+# 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
-	New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
-	echo ""
-	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
-	echo ""
-	echo "  脚本从 BitComet 的 WebUI 中获取 Peers 列表，并格式化数据提交至 BTN 服务器"
-	echo ""
-	echo "  提交内容包括活动任务的种子识别符与种子大小"
-	echo ""
-	echo "  种子识别符由种子特征码经过不可逆哈希算法生成，不会透露用户的下载内容"
-	echo ""
-	echo "  更多信息请查阅以下网页"
-	echo ""
-	echo "  https://github.com/Oniicyan/BTNScriptBC"
-	echo "  https://github.com/PBH-BTN/BTN-Spec"
-	echo ""
-	echo "  同意请继续"
-	echo ""
+	Write-Host "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端`n"
+	Write-Host "  脚本从 BitComet 的 WebUI 中获取 Peers 列表，并格式化数据提交至 BTN 服务器`n"
+	Write-Host "  提交内容包括活动任务的种子识别符与种子大小`n"
+	Write-Host "  种子识别符由种子特征码经过不可逆哈希算法生成，不会透露用户的下载内容`n"
+	Write-Host "  更多信息请查阅以下网页`n"
+	Write-Host "  https://github.com/Oniicyan/BTNScriptBC"
+	Write-Host "  https://github.com/PBH-BTN/BTN-Spec"
+	Write-Host "`n  同意请继续`n"
 	pause
 	Clear-Host
-	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
-	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
-	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
-	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
-	$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
-	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-	Unregister-ScheduledTask BTNScriptBC_NOFW_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTNScriptBC_NOFW_STARTUP -InputObject $TASK | Out-Null
-	echo ""
-	echo "  已配置以下自启动任务计划"
-	echo ""
-	echo "  BTNScriptBC_NOFW_STARTUP"
-	echo ""
-	echo "  ----------------------------------"
-	echo "  请填写用户信息（点击鼠标右键粘贴）"
-	echo "  ----------------------------------"
-	echo ""
-	echo "  地址可填写 IPv4、IPv6 或域名"
-	echo "  本机可填写 127.0.0.1，::1 或 localhost"
-	echo "  无需 http:// 或 /panel/ 等 URL 标识"
-	echo ""
-	echo "  WebUI 密码将明文保存至本地文件"
-	echo "  不建议重复使用常用密码"
-	echo ""
-	$UIADDR = Read-Host -Prompt "  BitComet WebUI 地址"
-	$UIPORT = Read-Host -Prompt "  BitComet WebUI 端口"
-	$UIUSER = Read-Host -Prompt "  BitComet WebUI 账号"
-	$UIPASS = Read-Host -Prompt "  BitComet WebUI 密码"
-	$APPUID = Read-Host -Prompt "  BTN AppId"
-	$APPSEC = Read-Host -Prompt "  BTN AppSecret"
+	Write-Host
+	Write-Host "  --------------------"
+	Write-Host "  请指定脚本的启动方式"
+	Write-Host "  --------------------`n"
+	Write-Host "  脚本会在通知区域显示图标，可点击显示／隐藏窗口"
+	Write-Host "  BitComet 未启动时，每 60 秒检测一次`n"
+	Write-Host "  1. 跟随用户启动"
+	Write-Host "     通过任务计划程序，在用户登录时启动脚本`n"
+	Write-Host "  2. 桌面快捷方式"
+	Write-Host "     在桌面生成快捷方式，由用户按需启动`n"
+	Write-Host "  3. 跳过启动配置"
+	Write-Host "     不配置启动方式，用户自行操作"
+	$STARTUP = Read-Host "`n请输入 1-3（默认为 跟随用户启动）"
+	if (Test-Path $APPWTPATH) {
+		"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	} else {
+		"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	}
+	switch ($STARTUP) {
+		2 {
+			$LINKPATH = "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk"
+			$WshShell = New-Object -COMObject WScript.Shell
+			$Shortcut = $WshShell.CreateShortcut("$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk")
+			$Shortcut.TargetPath = "$USERPATH\STARTUP.cmd"
+			$Shortcut.IconLocation = "$ENV:WINDIR\System32\EaseOfAccessDialog.exe"
+			$Shortcut.Save()
+			$LINKBYTE = [System.IO.File]::ReadAllBytes($Shortcut.FullName)
+			$LINKBYTE[0x15] = $LINKBYTE[0x15] -bor 0x20
+			[System.IO.File]::WriteAllBytes($Shortcut.FullName,$LINKBYTE)
+			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC`n"
+		}
+		3 {}
+		default {
+			$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $ENV:COMPUTERNAME\$ENV:USERNAME -RunLevel Highest
+			$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
+			$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $ENV:COMPUTERNAME\$ENV:USERNAME
+			$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
+			$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
+			Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
+			Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
+			Write-Host "`n  已配置自启动任务计划：BTNScriptBC_STARTUP`n"
+		}
+	}
+	Write-Host "  ----------------------------------"
+	Write-Host "  请填写用户信息（点击鼠标右键粘贴）"
+	Write-Host "  ----------------------------------`n"
+	Write-Host "  地址可填写 IPv4、IPv6 或域名"
+	Write-Host "  本机可填写 127.0.0.1，::1 或 localhost"
+	Write-Host "  无需 http:// 或 /panel/ 等 URL 标识`n"
+	Write-Host "  WebUI 密码将明文保存至本地文件"
+	Write-Host "  不建议重复使用常用密码"
+	$UIADDR = Read-Host -Prompt "`n  BitComet WebUI 地址"
+	$UIPORT = Read-Host -Prompt "`n  BitComet WebUI 端口"
+	$UIUSER = Read-Host -Prompt "`n  BitComet WebUI 账号"
+	$UIPASS = Read-Host -Prompt "`n  BitComet WebUI 密码"
+	$APPUID = Read-Host -Prompt "`n  BTN AppId"
+	$APPSEC = Read-Host -Prompt "`n  BTN AppSecret"
 	Write-Output @"
 UIADDR = $UIADDR
 UIPORT = $UIPORT
@@ -99,24 +141,18 @@ UIPASS = $UIPASS
 APPUID = $APPUID
 APPSEC = $APPSEC
 "@| Out-File $INFOPATH
-	echo ""
-	echo "  用户信息已保存至 $INFOPATH"
-	echo ""
-	echo "  可直接编辑用户信息，也可删除以重新配置"
-	echo ""
-	echo "  执行以下命令清除所有配置"
-	echo ""
-	echo "  iex (irm btn-bc.pages.dev/unset)"
-	echo ""
-	echo "  ------------------------------"
-	echo "  初始配置完成，脚本即将开始工作"
-	echo "  ------------------------------"
-	echo ""
+	Write-Host 
+	Write-Host "  --------------------------------------`n"
+	Write-Host "  用户信息已保存至 $INFOPATH`n"
+	Write-Host "  可直接编辑用户信息，也可删除以重新配置`n"
+	Write-Host "  --------------------------------------`n"
+	Write-Host "  初始配置完成，脚本即将开始工作`n"
 	Write-Host "  脚本开始工作后" -ForegroundColor Green
-	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口" -ForegroundColor Green
-	echo ""
-	Write-Host "  关闭脚本后，可再次执行同样的命令以继续" -ForegroundColor Green
-	echo ""
+	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口`n" -ForegroundColor Green
+	Write-Host "  执行以下命令清除所有配置" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/unset)`n"
+	Write-Host "  执行以下命令重建桌面快捷方式" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/lnk)"
 	timeout 120
 	Clear-Host
 }
@@ -125,6 +161,7 @@ APPSEC = $APPSEC
 # 仅在检测不到 USERINFO.txt 时，执行初始配置
 $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
 $INFOPATH = "$USERPATH\USERINFO.txt"
+New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
 if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
 	Invoke-Setup
