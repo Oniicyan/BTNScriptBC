@@ -1,3 +1,4 @@
+$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
 $LINKPATH = "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk"
 $WshShell = New-Object -COMObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk")
