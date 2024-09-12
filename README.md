@@ -69,19 +69,19 @@ https://btn-prod.ghostchu-services.top/
 
 执行以下配置无过滤规则脚本
 
-iex (irm btn-bc.pages.dev/nofw)
+`iex (irm btn-bc.pages.dev/nofw)`
 
 执行以下命令添加过滤规则
 
-iex (irm btn-bc.pages.dev/add)
+`iex (irm btn-bc.pages.dev/add)`
 
 执行以下命令重建桌面快捷方式
 
-iex (irm bt-ban.pages.dev/lnk)
+`iex (irm bt-ban.pages.dev/lnk)`
 
 执行以下命令清理 Windows 防火墙中的冗余规则
 
-iex (irm btn-bc.pages.dev/clean)
+`iex (irm btn-bc.pages.dev/clean)`
 
 # 安全提醒
 
