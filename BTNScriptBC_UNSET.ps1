@@ -1,9 +1,15 @@
+Remove-Variable * -ErrorAction Ignore
 if ((Fltmc).Count -eq 3) {
-	echo ""
-	echo "  请以管理员权限重新执行"
-	echo ""
-	pause
-	exit
+	$APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+	if (Test-Path $APPWTPATH) {
+		$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
+	} else {
+		$PROCESS = "powershell -ArgumentList `"$($MyInvocation.MyCommand.Definition)`""
+	}
+	Write-Host "`n  10 秒后以管理员权限继续执行"
+	timeout 10
+	Invoke-Expression "Start-Process $PROCESS -Verb RunAs"
+	return
 }
 
 # 名称变更，此部分保留一段时间
@@ -14,70 +20,63 @@ if (Test-Path $NEWPATH) {
 } else {
 	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
 }
-Get-NetFirewallRule -DisplayName BTN_* |% {Set-NetFirewallRule $_.Name -NewDisplayName $_.DisplayName.Replace('BTN_','BTNScript_')}
-if ($OLDTASK = Get-ScheduledTask BTN_* -ErrorAction Ignore) {
-	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd")
+if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Sort-Object | Get-Unique) {
+	$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+	foreach ($APPPATH in $OLDLIST) {
+		$APPNAME = [System.IO.Path]::GetFileName($APPPATH)
+		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Inbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Outbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	}
+	Remove-NetFirewallRule -DisplayName BTN_*
+}
+if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
+	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
 	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
 }
+Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 
-$RULELIST = Get-NetFirewallRule -DisplayName BTNScript_* | Select-Object -Property Displayname, Direction
-if ($RULELIST) {
-	echo ""
-	echo "  清除以下过滤规则"
-	echo ""
+if ($RULELIST = Get-NetFirewallRule -DisplayName BTNScript_*) {
+	Write-Host "`n  清除以下过滤规则`n"
 	$RULELIST | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
-	echo ""
+	Write-Host
 	pause
-	Remove-NetFirewallRule -DisplayName $RULELIST.DisplayName
+	Remove-NetFirewallRule $RULELIST
 } else {
-	echo ""
-	echo "  没有需要清除的过滤规则"
+	Write-Host "`n  没有需要清除的过滤规则`n"
 }
 
-$TASKLIST = (Get-ScheduledTask BTNScriptBC_*).TaskName
-if ($TASKLIST) {
-	echo ""
-	echo "  清除以下任务计划"
-	echo ""
-	$TASKLIST | ForEach-Object {'  ' + $_}
-	echo ""
+if ($TASKLIST = Get-ScheduledTask BTNScriptBC_*) {
+	Write-Host "`n  清除以下任务计划`n"
+	$TASKLIST.TaskName | ForEach-Object {'  ' + $_}
+	Write-Host
 	pause
-	Unregister-ScheduledTask $TASKLIST -Confirm:$false
+	Unregister-ScheduledTask $TASKLIST.TaskName -Confirm:$false
 } else {
-	echo ""
-	echo "  没有需要清除的任务计划"
+	Write-Host "`n  没有需要清除的任务计划`n"
 }
 
-$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
-if ($DYKWNAME = (Get-NetFirewallDynamicKeywordAddress -Id $DYKWID -ErrorAction Ignore).Keyword) {
-	echo ""
-	echo "  清除以下动态关键字"
-	echo ""
-	$DYKWNAME | ForEach-Object {'  ' + $_}
-	echo ""
+$GUID = '{da62ac48-4707-4adf-97ea-676470a460f5}'
+if ($DYKW = Get-NetFirewallDynamicKeywordAddress -Id $GUID -ErrorAction Ignore) {
+	Write-Host "`n  清除以下动态关键字`n"
+	$DYKW.Keyword | ForEach-Object {'  ' + $_}
+	Write-Host
 	pause
-	Remove-NetFirewallDynamicKeywordAddress -Id $DYKWID
-} else  {
-	echo ""
-	echo "  没有需要清除的动态关键字"
-}
-
-$FILELIST = (Get-Childitem $env:USERPROFILE\BTNScriptBC -Recurse).FullName
-if ($FILELIST) {
-	echo ""
-	echo "  清除以下脚本文件"
-	echo ""
-	echo "  $env:USERPROFILE\BTNScriptBC"
-	$FILELIST | ForEach-Object {'  ' + $_}
-	echo ""
-	pause
-	Remove-Item $env:USERPROFILE\BTNScriptBC -Force -Recurse -ErrorAction Ignore
+	Remove-NetFirewallDynamicKeywordAddress -Id $GUID
 } else {
-	echo ""
-	echo "  没有需要清除的脚本文件"
+	Write-Host "`n  没有需要清除的动态关键字`n"
 }
 
-echo ""
-echo "  已清除所有配置"
-echo ""
+if (Test-Path $ENV:USERPROFILE\BTNScriptBC) {
+	Write-Host "`n  清除以下脚本文件`n"
+	Write-Host "  $ENV:USERPROFILE\BTNScriptBC"
+	(Get-Childitem $ENV:USERPROFILE\BTNScriptBC -Recurse).FullName | ForEach-Object {'  ' + $_}
+	Write-Host
+	pause
+	Remove-Item $ENV:USERPROFILE\BTNScriptBC -Force -Recurse -ErrorAction Ignore
+} else {
+	Write-Host "`n  没有需要清除的脚本文件`n"
+}
+
+Write-Host "`n  已清除所有配置`n"
+Read-Host 操作完成，按 Enter 键结束...
