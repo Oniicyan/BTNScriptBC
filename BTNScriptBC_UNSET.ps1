@@ -36,6 +36,11 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 }
 Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 
+Get-Item $ENV:TEMP\BTNScriptBC_* | ForEach-Object {
+	Stop-Process ($_.Name -Split '_')[-1] -Force -ErrorAction Ignore
+	Remove-Item $_
+}
+
 if ($RULELIST = Get-NetFirewallRule -DisplayName BTNScript_*) {
 	Write-Host "`n  清除以下过滤规则`n"
 	$RULELIST | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
