@@ -1,18 +1,26 @@
-# BTN 服务器与版本信息在此定义
+# BTN 服务器与版本信息等在此定义
 Remove-Variable * -ErrorAction Ignore
-$Host.UI.RawUI.WindowTitle = "BTNScriptBC"
+$Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
 $SCRIPTURL = "btn-bc.pages.dev"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/0.0.1"
+$APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
-# 检测管理员权限与防火墙状态
+Write-Host
+
+# 检测管理员权限
 # nofw 版初始配置时需要
 if ((Fltmc).Count -eq 3) {
-	echo ""
-	echo "  请以管理员权限执行"
-	echo ""
+	if (Test-Path $APPWTPATH) {
+		$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
+	} else {
+		$PROCESS = "powershell -ArgumentList `"$($MyInvocation.MyCommand.Definition)`""
+	}
+	Write-Host "  10 秒后以管理员权限继续执行"
+	timeout 10
+	Invoke-Expression "Start-Process $PROCESS -Verb RunAs"
 	return
 }
 
@@ -97,103 +105,128 @@ if ($DISABLED = Get-NetFirewallProfile | Where-Object {$_.Enabled -eq 0}) {
 # 初始配置
 # 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
-	New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
-	echo ""
-	echo "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端"
-	echo ""
-	echo "  脚本从 BitComet 的 WebUI 中获取 Peers 列表，并格式化数据提交至 BTN 服务器"
-	echo ""
-	echo "  提交内容包括活动任务的种子识别符与种子大小"
-	echo ""
-	echo "  种子识别符由种子特征码经过不可逆哈希算法生成，不会透露用户的下载内容"
-	echo ""
-	echo "  更多信息请查阅以下网页"
-	echo ""
-	echo "  https://github.com/Oniicyan/BTNScriptBC"
-	echo "  https://github.com/PBH-BTN/BTN-Spec"
-	echo ""
-	echo "  同意请继续"
-	echo ""
+	Write-Host "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端`n"
+	Write-Host "  脚本从 BitComet 的 WebUI 中获取 Peers 列表，并格式化数据提交至 BTN 服务器`n"
+	Write-Host "  提交内容包括活动任务的种子识别符与种子大小`n"
+	Write-Host "  种子识别符由种子特征码经过不可逆哈希算法生成，不会透露用户的下载内容`n"
+	Write-Host "  更多信息请查阅以下网页`n"
+	Write-Host "  https://github.com/Oniicyan/BTNScriptBC"
+	Write-Host "  https://github.com/PBH-BTN/BTN-Spec"
+	Write-Host "`n  同意请继续`n"
 	pause
 	Clear-Host
-	echo ""
-	echo "  ------------------------------------"
-	echo "  即将开始初始配置，请按照提示进行操作"
-	echo "  ------------------------------------"
-	echo ""
-	echo "  配置 WIndows 防火墙过滤规则与动态关键字"
-	echo ""
-	echo "  请指定启用过滤规则的 BT 应用程序文件，可选择快捷方式"
-	echo ""
-	echo "  过滤规则仅对选中的程序生效，不影响其他程序的通信"
-	echo ""
-	echo "  如需为多个程序启用过滤规则，请在完成配置后另外执行以下命令"
-	echo ""
-	echo "  iex (irm btn-bc.pages.dev/add)"
-	echo ""
-	echo "  如不使用过滤规则，仅提交 Peers 列表至 BTN 服务器"
-	echo "  请按 Ctrl + C 键退出本脚本后执行以下命令"
-	echo ""
-	echo "  iex (irm btn-bc.pages.dev/nofw)"
-	echo ""
-	pause
-	Add-Type -AssemblyName System.Windows.Forms
-	$BTINFO = New-Object System.Windows.Forms.OpenFileDialog -Property @{InitialDirectory = [Environment]::GetFolderPath('Desktop')}
-	$BTINFO.ShowDialog() | Out-Null
-	if (!$BTINFO.FileName) {
-		echo ""
-		echo "  未选择文件"
-		echo ""
-		echo "  请重新执行脚本，并正确选择 BT 应用程序"
-		echo ""
-		exit
+	Write-Host
+	Write-Host "  --------------------------------"
+	Write-Host "  请指定启用过滤规则的 BT 应用程序"
+	Write-Host "  --------------------------------`n"
+	Write-Host "  1. 自动识别"
+	Write-Host "     从现有的 Windows 防火墙过滤规则中识别 BT 应用程序路径"
+	Write-Host "     仅识别常见的 BT 应用程序`n"
+	Write-Host "  2. 手动选择"
+	Write-Host "     可选择快捷方式"
+	Write-Host "     每次选择单个 BT 应用程序`n"
+	Write-Host "  如不使用过滤规则，仅提交 Peers 列表至 BTN 服务器"
+	Write-Host "  请按 Ctrl + C 键退出脚本后执行以下命令"
+	Write-Host "  iex (irm btn-bc.pages.dev/nofw)"
+	$BTRULE = Read-Host "`n请输入 1 或 2（默认为 自动识别）"
+	switch ($BTRULE) {
+		2 {
+			Add-Type -AssemblyName System.Windows.Forms
+			$BTINFO = New-Object System.Windows.Forms.OpenFileDialog -Property @{InitialDirectory = [Environment]::GetFolderPath('Desktop')}
+			while ($True) {
+				$BTINFO.ShowDialog() | Out-Null
+				if ($BTINFO.FileName) {break} else {Write-Host "`n  未选择文件`n"}
+			}
+			$BTPATH = $BTINFO.FileName
+			$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
+			Remove-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -ErrorAction Ignore
+			New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+			New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+		}
+		default {
+			$BTPTRN = 'Azureus\.exe|BitComet\.exe|BitComet_.*\.exe|biglybt\.exe|BitTorrent\.exe|btweb\.exe|deluge\.exe|qbittorrent\.exe|transmission-qt\.exe|uTorrent\.exe|utweb\.exe|tixati\.exe'
+			$FWLIST = (Get-NetFirewallApplicationFilter).Program | Select-String $BTPTRN | Sort-Object | Get-Unique
+			$BTLIST =@()
+			foreach ($BTPATH in $FWLIST) {
+				if ($BTPATH -Match '^%') {
+					$BTTEST = Invoke-Expression (($BTPATH -Replace '^%','${ENV:').Replace('%','} + ''') + "'")
+				} else {
+					$BTTEST = $BTPATH
+				}
+				if (Test-Path $BTTEST) {$BTLIST += $BTPATH}
+			}
+			if (!$BTLIST) {
+				Write-Host "`n  识别不到 BT 应用程序`n  请重新执行脚本并手动选择"
+				Read-Host `n操作失败，按 Enter 键结束...
+				exit
+			}
+			foreach ($BTPATH in $BTLIST) {
+				$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
+				Remove-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -ErrorAction Ignore
+				New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+				New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+			}
+		}
 	}
-	$BTPATH = $BTINFO.FileName
-	$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
-	Remove-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -ErrorAction Ignore
-	New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Inbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-	New-NetFirewallRule -DisplayName "BTNScript_$BTNAME" -Direction Outbound -Action Block -Program $BTPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
-	$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $env:COMPUTERNAME\$env:USERNAME -RunLevel Highest
-	$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
-	$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $env:COMPUTERNAME\$env:USERNAME
-	$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
-	$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-	Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
-	echo ""
-	echo "  程序路径为：$BTPATH"
-	echo ""
-	echo "  已配置以下过滤规则"
-	echo ""
+	Write-Host "`n  已配置以下过滤规则`n"
 	Get-NetFirewallRule -DisplayName BTNScript_* | Select-Object -Property Displayname,Direction | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
-	echo ""
-	echo "  已配置以下动态关键字"
-	echo ""
-	echo "  BTN_IPLIST"
-	echo ""
-	echo "  已配置以下自启动任务计划"
-	echo ""
-	echo "  BTNScriptBC_STARTUP"
-	echo ""
-	echo "  ----------------------------------"
-	echo "  请填写用户信息（点击鼠标右键粘贴）"
-	echo "  ----------------------------------"
-	echo ""
-	echo "  地址可填写 IPv4、IPv6 或域名"
-	echo "  本机可填写 127.0.0.1，::1 或 localhost"
-	echo "  无需 http:// 或 /panel/ 等 URL 标识"
-	echo ""
-	echo "  WebUI 密码将明文保存至本地文件"
-	echo "  不建议重复使用常用密码"
-	echo ""
-	$UIADDR = Read-Host -Prompt "  BitComet WebUI 地址"
-	$UIPORT = Read-Host -Prompt "  BitComet WebUI 端口"
-	$UIUSER = Read-Host -Prompt "  BitComet WebUI 账号"
-	$UIPASS = Read-Host -Prompt "  BitComet WebUI 密码"
-	$APPUID = Read-Host -Prompt "  BTN AppId"
-	$APPSEC = Read-Host -Prompt "  BTN AppSecret"
+	Write-Host
+	Write-Host "  --------------------"
+	Write-Host "  请指定脚本的启动方式"
+	Write-Host "  --------------------`n"
+	Write-Host "  脚本会在通知区域显示图标，可点击显示／隐藏窗口"
+	Write-Host "  BitComet 未启动时，每 60 秒检测一次`n"
+	Write-Host "  1. 跟随用户启动"
+	Write-Host "     通过任务计划程序，在用户登录时启动脚本`n"
+	Write-Host "  2. 桌面快捷方式"
+	Write-Host "     在桌面生成快捷方式，由用户按需启动`n"
+	Write-Host "  3. 跳过启动配置"
+	Write-Host "     不配置启动方式，用户自行操作"
+	$STARTUP = Read-Host "`n请输入 1-3（默认为 跟随用户启动）"
+	if (Test-Path $APPWTPATH) {
+		"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	} else {
+		"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	}
+	switch ($STARTUP) {
+		2 {
+			$LINKPATH = "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk"
+			$WshShell = New-Object -COMObject WScript.Shell
+			$Shortcut = $WshShell.CreateShortcut("$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk")
+			$Shortcut.TargetPath = "$USERPATH\STARTUP.cmd"
+			$Shortcut.IconLocation = "$ENV:WINDIR\System32\EaseOfAccessDialog.exe"
+			$Shortcut.Save()
+			$LINKBYTE = [System.IO.File]::ReadAllBytes($Shortcut.FullName)
+			$LINKBYTE[0x15] = $LINKBYTE[0x15] -bor 0x20
+			[System.IO.File]::WriteAllBytes($Shortcut.FullName,$LINKBYTE)
+			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC`n"
+		}
+		3 {}
+		default {
+			$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $ENV:COMPUTERNAME\$ENV:USERNAME -RunLevel Highest
+			$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
+			$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $ENV:COMPUTERNAME\$ENV:USERNAME
+			$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
+			$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
+			Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
+			Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
+			Write-Host "`n  已配置自启动任务计划：BTNScriptBC_STARTUP`n"
+		}
+	}
+	Write-Host "  ----------------------------------"
+	Write-Host "  请填写用户信息（点击鼠标右键粘贴）"
+	Write-Host "  ----------------------------------`n"
+	Write-Host "  地址可填写 IPv4、IPv6 或域名"
+	Write-Host "  本机可填写 127.0.0.1，::1 或 localhost"
+	Write-Host "  无需 http:// 或 /panel/ 等 URL 标识`n"
+	Write-Host "  WebUI 密码将明文保存至本地文件"
+	Write-Host "  不建议重复使用常用密码"
+	$UIADDR = Read-Host -Prompt "`n  BitComet WebUI 地址"
+	$UIPORT = Read-Host -Prompt "`n  BitComet WebUI 端口"
+	$UIUSER = Read-Host -Prompt "`n  BitComet WebUI 账号"
+	$UIPASS = Read-Host -Prompt "`n  BitComet WebUI 密码"
+	$APPUID = Read-Host -Prompt "`n  BTN AppId"
+	$APPSEC = Read-Host -Prompt "`n  BTN AppSecret"
 	Write-Output @"
 UIADDR = $UIADDR
 UIPORT = $UIPORT
@@ -202,24 +235,20 @@ UIPASS = $UIPASS
 APPUID = $APPUID
 APPSEC = $APPSEC
 "@| Out-File $INFOPATH
-	echo ""
-	echo "  用户信息已保存至 $INFOPATH"
-	echo ""
-	echo "  可直接编辑用户信息，也可删除以重新配置"
-	echo ""
-	echo "  执行以下命令清除所有配置"
-	echo ""
-	echo "  iex (irm btn-bc.pages.dev/unset)"
-	echo ""
-	echo "  ------------------------------"
-	echo "  初始配置完成，脚本即将开始工作"
-	echo "  ------------------------------"
-	echo ""
+	Write-Host 
+	Write-Host "  --------------------------------------`n"
+	Write-Host "  用户信息已保存至 $INFOPATH`n"
+	Write-Host "  可直接编辑用户信息，也可删除以重新配置`n"
+	Write-Host "  --------------------------------------`n"
+	Write-Host "  初始配置完成，脚本即将开始工作`n"
 	Write-Host "  脚本开始工作后" -ForegroundColor Green
-	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口" -ForegroundColor Green
-	echo ""
-	Write-Host "  关闭脚本后，可再次执行同样的命令以继续" -ForegroundColor Green
-	echo ""
+	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口`n" -ForegroundColor Green
+	Write-Host "  执行以下命令清除所有配置" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/unset)`n"
+	Write-Host "  执行以下命令添加过滤规则" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/add)`n"
+	Write-Host "  执行以下命令重建桌面快捷方式" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/lnk)"
 	timeout 120
 	Clear-Host
 }
@@ -229,18 +258,20 @@ APPSEC = $APPSEC
 $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
 $INFOPATH = "$USERPATH\USERINFO.txt"
 $DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses 1.2.3.4 -ErrorAction Ignore | Out-Null
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
+New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
 if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
 	Invoke-Setup
 }
-New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses 1.2.3.4 -ErrorAction Ignore | Out-Null
 
 # 隐藏窗口
 $ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
 $ShowWindowAsync = Add-Type -MemberDefinition $ShowWindowAsyncCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
 $hwnd = (Get-Process -PID $PID).MainWindowHandle
 if ($hwnd -eq [System.IntPtr]::Zero) {
-	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq "BTNScriptBC"}
+	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq $Host.UI.RawUI.WindowTitle}
 	$hwnd = $TerminalProcess.MainWindowHandle
 }
 if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
@@ -250,7 +281,7 @@ if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
 [System.Reflection.Assembly]::LoadWithPartialName('presentationframework') | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName('System.Drawing') | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName('WindowsFormsIntegration') | Out-Null
-$ICON = [System.Drawing.Icon]::ExtractAssociatedIcon("C:\Windows\System32\EaseOfAccessDialog.exe")
+$ICON = [System.Drawing.Icon]::ExtractAssociatedIcon("$ENV:WINDIR\System32\EaseOfAccessDialog.exe")
 $Main_Tool_Icon = New-Object System.Windows.Forms.NotifyIcon
 $Main_Tool_Icon.Text = "BTNScriptBC"
 $Main_Tool_Icon.Icon = $ICON
