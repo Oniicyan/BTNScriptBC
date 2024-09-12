@@ -274,7 +274,7 @@ if ($hwnd -eq [System.IntPtr]::Zero) {
 	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq $Host.UI.RawUI.WindowTitle}
 	$hwnd = $TerminalProcess.MainWindowHandle
 }
-if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
+if (!$SETUP) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
 
 # 通知区域图标
 [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
