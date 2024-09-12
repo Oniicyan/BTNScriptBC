@@ -47,6 +47,11 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
 }
 Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
+if (Test-Path $APPWTPATH) {
+	"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+} else {
+	"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+}
 
 # 检测重复运行
 # $MUTEX = New-Object System.Threading.Mutex($False,'BTNScriptBC')
