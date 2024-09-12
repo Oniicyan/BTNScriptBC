@@ -40,39 +40,57 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 }
 Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 
+# 检测重复运行
+# $MUTEX = New-Object System.Threading.Mutex($False,'BTNScriptBC')
+# if (!($MUTEX.WaitOne(0,$False))) {
+#	Write-Host "  请关闭正在运行的脚本后重试"
+#	pause
+#	return
+# }
+Get-Item $ENV:TEMP\BTNScriptBC_* -Exclude *$PID | ForEach-Object {
+	Stop-Process ($_.Name -Split '_')[-1] -Force -ErrorAction Ignore
+	Remove-Item $_
+}
+New-Item $ENV:TEMP\BTNScriptBC_$PID -ErrorAction Ignore | Out-Null
+try {
+	[System.IO.File]::Open("$ENV:TEMP\BTNScriptBC_$PID",[System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::None) | Out-Null
+} catch {}
+
+# 检测动态关键字可用性
 $TESTGUID = "{62809d89-9d3b-486b-808f-8c893c1c3378}"
 Remove-NetFirewallDynamicKeywordAddress -Id $TESTGUID -ErrorAction Ignore
-if (New-NetFirewallDynamicKeywordAddress -Id $TESTGUID -Keyword "BT_BAN_TEST" -Address 1.2.3.4 -ErrorAction Ignore) {
+if (New-NetFirewallDynamicKeywordAddress -Id $TESTGUID -Keyword "BTNScriptBC_TEST" -Address 1.2.3.4 -ErrorAction Ignore) {
 	Remove-NetFirewallDynamicKeywordAddress -Id $TESTGUID
 } else {
-	echo ""
-	echo "  当前 Windows 版本不支持动态关键字，请升级操作系统"
-	echo ""
-	echo "  如不使用过滤规则，仅提交 Peers 列表至 BTN，请执行以下命令"
-	echo ""
-	echo "  iex (irm btn-bc.pages.dev/nofw)"
-	echo ""
+	Write-Host "  当前 Windows 版本不支持动态关键字，请升级操作系统`n"
+	Write-Host "  如不使用过滤规则，仅提交 Peers 列表至 BTN，请执行以下命令`n"
+	Write-Host "  iex (irm btn-bc.pages.dev/nofw)`n"
 	return
 }
 
-if ((Get-NetFirewallProfile).Enabled -contains 0) {
-	if ([string](Get-NetFirewallProfile | ForEach-Object {
-	if ($_.Enabled -eq 1) {$_.Name}})`
-	-Notmatch (((Get-NetFirewallSetting -PolicyStore ActiveStore).ActiveProfile) -Replace ', ','|')) {
-		echo ""
-		echo "  当前网络下未启用 Windows 防火墙"
-		echo ""
-		echo "  通常防护软件可与 Windows 防火墙共存，不建议禁用"
-		echo ""
-		echo "  仍可继续配置，在 Windows 防火墙启用时，过滤规则生效"
-		echo ""
-		echo "  如不使用过滤规则，仅提交 Peers 列表至 BTN 服务器"
-		echo "  请按 Ctrl + C 键退出本脚本后执行以下命令"
-		echo ""
-		echo "  iex (irm btn-bc.pages.dev/nofw)"
-		echo ""
-		pause
+# 检测防火墙状态
+if ($DISABLED = Get-NetFirewallProfile | Where-Object {$_.Enabled -eq 0}) {
+	$ACTIVEPF = ((Get-NetFirewallSetting -PolicyStore ActiveStore).ActiveProfile) -Replace ', ','|'
+	$NEEDEDPF = @()
+	foreach ($PFNAME in $DISABLED.Name) {if ($PFNAME -Match $ACTIVEPF) {$NEEDEDPF += $PFNAME}}
+	if ($NEEDEDPF) {
+		Write-Host "  当前网络下未启用 Windows 防火墙`n"
+		Write-Host "  通常防护软件可与 Windows 防火墙共存，不建议禁用`n"
+		Write-Host "  仍可继续配置，在 Windows 防火墙启用时生效`n"
+		Write-Host "  如不使用过滤规则，仅提交 Peers 列表至 BTN 服务器"
+		Write-Host "  请按 Ctrl + C 键退出本脚本后执行以下命令"
+		Write-Host "  iex (irm btn-bc.pages.dev/nofw)`n"
+		$ENABLEPF = Read-Host "输入 Y 启用 Windows 防火墙，否则跳过"
 		Clear-Host
+		switch -regex ($ENABLEPF) {
+			'Y|y' {
+				Set-NetFirewallProfile $NEEDEDPF -Enabled 1
+				Write-Host "`n  成功启用 Windows 防火墙`n"
+			}
+			default {
+				Write-Host "`n  跳过启用 Windows 防火墙`n"
+			}
+		}
 	}
 }
 
