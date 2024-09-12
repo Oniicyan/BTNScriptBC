@@ -61,6 +61,15 @@ if ($TASKLIST = Get-ScheduledTask BTNScriptBC_*) {
 	Write-Host "`n  没有需要清除的任务计划`n"
 }
 
+if ($LINKPATH = Get-Item "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk" -ErrorAction Ignore) {
+	Write-Host "`n  清除以下桌面快捷方式`n"
+	Write-Host "`n  BTNScriptBC.lnk`n"
+	pause
+	Remove-Item $LINKPATH -Force -ErrorAction Ignore
+} else {
+	Write-Host "`n  没有需要清除的桌面快捷方式`n"
+}
+
 $GUID = '{da62ac48-4707-4adf-97ea-676470a460f5}'
 if ($DYKW = Get-NetFirewallDynamicKeywordAddress -Id $GUID -ErrorAction Ignore) {
 	Write-Host "`n  清除以下动态关键字`n"
