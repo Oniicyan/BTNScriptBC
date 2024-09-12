@@ -44,53 +44,49 @@ Get-Item $ENV:TEMP\BTNScriptBC_* | ForEach-Object {
 if ($RULELIST = Get-NetFirewallRule -DisplayName BTNScript_*) {
 	Write-Host "`n  清除以下过滤规则`n"
 	$RULELIST | ForEach-Object {'  ' + $_.DisplayName + ' (' + $_.Direction + ')'}
-	Write-Host
 	pause
 	Remove-NetFirewallRule $RULELIST
 } else {
-	Write-Host "`n  没有需要清除的过滤规则`n"
+	Write-Host "`n  没有需要清除的过滤规则"
 }
 
 if ($TASKLIST = Get-ScheduledTask BTNScriptBC_*) {
 	Write-Host "`n  清除以下任务计划`n"
 	$TASKLIST.TaskName | ForEach-Object {'  ' + $_}
-	Write-Host
 	pause
 	Unregister-ScheduledTask $TASKLIST.TaskName -Confirm:$false
 } else {
-	Write-Host "`n  没有需要清除的任务计划`n"
+	Write-Host "`n  没有需要清除的任务计划"
 }
 
 if ($LINKPATH = Get-Item "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk" -ErrorAction Ignore) {
-	Write-Host "`n  清除以下桌面快捷方式`n"
-	Write-Host "`n  BTNScriptBC.lnk`n"
+	Write-Host "`n  清除以下桌面快捷方式"
+	Write-Host "`n  BTNScriptBC.lnk"
 	pause
 	Remove-Item $LINKPATH -Force -ErrorAction Ignore
 } else {
-	Write-Host "`n  没有需要清除的桌面快捷方式`n"
+	Write-Host "`n  没有需要清除的桌面快捷方式"
 }
 
 $GUID = '{da62ac48-4707-4adf-97ea-676470a460f5}'
 if ($DYKW = Get-NetFirewallDynamicKeywordAddress -Id $GUID -ErrorAction Ignore) {
 	Write-Host "`n  清除以下动态关键字`n"
 	$DYKW.Keyword | ForEach-Object {'  ' + $_}
-	Write-Host
 	pause
 	Remove-NetFirewallDynamicKeywordAddress -Id $GUID
 } else {
-	Write-Host "`n  没有需要清除的动态关键字`n"
+	Write-Host "`n  没有需要清除的动态关键字"
 }
 
 if (Test-Path $ENV:USERPROFILE\BTNScriptBC) {
-	Write-Host "`n  清除以下脚本文件`n"
-	Write-Host "  $ENV:USERPROFILE\BTNScriptBC"
+	Write-Host "`n  清除以下脚本文件"
+	Write-Host "`n  $ENV:USERPROFILE\BTNScriptBC"
 	(Get-Childitem $ENV:USERPROFILE\BTNScriptBC -Recurse).FullName | ForEach-Object {'  ' + $_}
-	Write-Host
 	pause
 	Remove-Item $ENV:USERPROFILE\BTNScriptBC -Force -Recurse -ErrorAction Ignore
 } else {
-	Write-Host "`n  没有需要清除的脚本文件`n"
+	Write-Host "`n  没有需要清除的脚本文件"
 }
 
-Write-Host "`n  已清除所有配置`n"
-Read-Host 操作完成，按 Enter 键结束...
+Write-Host "`n  已清除所有配置"
+Read-Host `n操作完成，按 Enter 键结束...
