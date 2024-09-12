@@ -373,10 +373,10 @@ $Menu_Show.add_Click({
 	Write-Host (Get-Date) [ 下次查询配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
 })
 
+pause
+
 Clear-Host
 [System.GC]::Collect()
-
-pause
 
 # 启动信息
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
