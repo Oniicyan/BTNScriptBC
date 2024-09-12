@@ -1,6 +1,6 @@
 # BTN 服务器与版本信息等在此定义
 Remove-Variable * -ErrorAction Ignore
-$Host.UI.RawUI.WindowTitle = "BTNScriptBC"
+$Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
@@ -280,7 +280,7 @@ $ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool Show
 $ShowWindowAsync = Add-Type -MemberDefinition $ShowWindowAsyncCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
 $hwnd = (Get-Process -PID $PID).MainWindowHandle
 if ($hwnd -eq [System.IntPtr]::Zero) {
-	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq "BTNScriptBC"}
+	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq $Host.UI.RawUI.WindowTitle}
 	$hwnd = $TerminalProcess.MainWindowHandle
 }
 if ($SETUP -ne 1) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
