@@ -190,6 +190,7 @@ function Invoke-Setup {
 	}
 	switch ($STARTUP) {
 		2 {
+			Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
 			$LINKPATH = "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk"
 			$WshShell = New-Object -COMObject WScript.Shell
 			$Shortcut = $WshShell.CreateShortcut("$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk")
@@ -199,9 +200,9 @@ function Invoke-Setup {
 			$LINKBYTE = [System.IO.File]::ReadAllBytes($Shortcut.FullName)
 			$LINKBYTE[0x15] = $LINKBYTE[0x15] -bor 0x20
 			[System.IO.File]::WriteAllBytes($Shortcut.FullName,$LINKBYTE)
-			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC`n"
+			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC.lnk`n"
 		}
-		3 {}
+		3 {Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore}
 		default {
 			$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $ENV:COMPUTERNAME\$ENV:USERNAME -RunLevel Highest
 			$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
