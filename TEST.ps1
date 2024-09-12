@@ -46,7 +46,7 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
 	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
 }
-Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute cmd -Argument "/C @start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)") -ErrorAction Ignore | Out-Null
+Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 
 # 检测重复运行
 # $MUTEX = New-Object System.Threading.Mutex($False,'BTNScriptBC')
@@ -375,8 +375,6 @@ $Menu_Show.add_Click({
 
 Clear-Host
 [System.GC]::Collect()
-
-pause
 
 # 启动信息
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
