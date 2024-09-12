@@ -245,20 +245,19 @@ APPUID = $APPUID
 APPSEC = $APPSEC
 "@| Out-File $INFOPATH
 	Write-Host 
+	Write-Host "  --------------------------------------`n"
 	Write-Host "  用户信息已保存至 $INFOPATH`n"
 	Write-Host "  可直接编辑用户信息，也可删除以重新配置`n"
-	Write-Host "  执行以下命令清除所有配置"
-	Write-Host "  iex (irm btn-bc.pages.dev/unset)`n"
-	Write-Host "  执行以下命令添加过滤规则"
-	Write-Host "  iex (irm btn-bc.pages.dev/add)`n"
-	Write-Host "  执行以下命令重建桌面快捷方式"
-	Write-Host "  iex (irm btn-bc.pages.dev/lnk)`n"
-	Write-Host "  ------------------------------"
-	Write-Host "  初始配置完成，脚本即将开始工作"
-	Write-Host "  ------------------------------"
-	Write-Host 
+	Write-Host "  --------------------------------------`n"
+	Write-Host "  初始配置完成，脚本即将开始工作`n"
 	Write-Host "  脚本开始工作后" -ForegroundColor Green
-	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口" -ForegroundColor Green
+	Write-Host "  可点击右下角通知区域图标显示／隐藏窗口`n" -ForegroundColor Green
+	Write-Host "  执行以下命令清除所有配置" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/unset)`n"
+	Write-Host "  执行以下命令添加过滤规则" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/add)`n"
+	Write-Host "  执行以下命令重建桌面快捷方式" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/lnk)`n"
 	timeout 120
 	Clear-Host
 }
