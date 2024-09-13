@@ -193,28 +193,28 @@ function Invoke-Setup {
 	} else {
 		"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
 	}
+	$LINKPATH = "$USERPATH\BTNScriptBC.lnk"
+	$WshShell = New-Object -COMObject WScript.Shell
+	$Shortcut = $WshShell.CreateShortcut($LINKPATH)
+	$Shortcut.TargetPath = "$USERPATH\STARTUP.cmd"
+	$Shortcut.IconLocation = "$ENV:WINDIR\System32\EaseOfAccessDialog.exe"
+	$Shortcut.Save()
+	$LINKBYTE = [System.IO.File]::ReadAllBytes($LINKPATH)
+	$LINKBYTE[0x15] = $LINKBYTE[0x15] -bor 0x20
+	[System.IO.File]::WriteAllBytes($LINKPATH,$LINKBYTE)
+	Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
 	switch ($STARTUP) {
 		2 {
-			Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
-			$LINKPATH = "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk"
-			$WshShell = New-Object -COMObject WScript.Shell
-			$Shortcut = $WshShell.CreateShortcut("$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk")
-			$Shortcut.TargetPath = "$USERPATH\STARTUP.cmd"
-			$Shortcut.IconLocation = "$ENV:WINDIR\System32\EaseOfAccessDialog.exe"
-			$Shortcut.Save()
-			$LINKBYTE = [System.IO.File]::ReadAllBytes($Shortcut.FullName)
-			$LINKBYTE[0x15] = $LINKBYTE[0x15] -bor 0x20
-			[System.IO.File]::WriteAllBytes($Shortcut.FullName,$LINKBYTE)
+			Copy-Item $LINKPATH $([Environment]::GetFolderPath("Desktop"))
 			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC.lnk`n"
 		}
-		3 {Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore}
+		3 {}
 		default {
 			$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $ENV:COMPUTERNAME\$ENV:USERNAME -RunLevel Highest
 			$SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 			$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $ENV:COMPUTERNAME\$ENV:USERNAME
 			$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
 			$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-			Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
 			Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
 			Write-Host "`n  已配置自启动任务计划：BTNScriptBC_STARTUP`n"
 		}
@@ -254,7 +254,9 @@ APPSEC = $APPSEC
 	Write-Host "  执行以下命令添加过滤规则" -ForegroundColor Cyan
 	Write-Host "  iex (irm btn-bc.pages.dev/add)`n"
 	Write-Host "  执行以下命令重建桌面快捷方式" -ForegroundColor Cyan
-	Write-Host "  iex (irm btn-bc.pages.dev/lnk)"
+	Write-Host "  iex (irm btn-bc.pages.dev/link)"
+	Write-Host "  执行以下命令重建自启动任务计划" -ForegroundColor Cyan
+	Write-Host "  iex (irm btn-bc.pages.dev/task)"
 	timeout 120
 	Clear-Host
 }
