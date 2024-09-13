@@ -55,7 +55,7 @@ https://btn-prod.ghostchu-services.top/
 
 `iex (irm btn-bc.pages.dev)`
 
-依照提示配置过滤规则、启动方式，并按填写 BitComet WebUI 与 BTN 服务器的访问信息即可完成配置
+按照提示配置过滤规则、启动方式，并填写 BitComet WebUI 与 BTN 服务器的访问信息即可完成配置
 
 ## 清除配置
 
@@ -71,7 +71,7 @@ https://btn-prod.ghostchu-services.top/
 
 `iex (irm btn-bc.pages.dev/add)`
 
-执行以下配置无过滤规则脚本
+执行以下命令配置无过滤功能脚本
 
 `iex (irm btn-bc.pages.dev/nofw)`
 
