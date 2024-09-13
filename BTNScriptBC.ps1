@@ -140,7 +140,7 @@ function Invoke-Setup {
 			$BTINFO = New-Object System.Windows.Forms.OpenFileDialog -Property @{InitialDirectory = [Environment]::GetFolderPath('Desktop')}
 			while ($True) {
 				$BTINFO.ShowDialog() | Out-Null
-				if ($BTINFO.FileName) {break} else {Read-Host `n未选择文件，按 Enter 键继续...}
+				if ($BTINFO.FileName) {break} else {Read-Host `n未选择文件，按 Enter 键重新选择}
 			}
 			$BTPATH = $BTINFO.FileName
 			$BTNAME = [System.IO.Path]::GetFileName($BTPATH)
