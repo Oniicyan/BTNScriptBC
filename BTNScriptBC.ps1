@@ -254,7 +254,7 @@ APPSEC = $APPSEC
 	Write-Host "  执行以下命令添加过滤规则" -ForegroundColor Cyan
 	Write-Host "  iex (irm btn-bc.pages.dev/add)`n"
 	Write-Host "  执行以下命令重建桌面快捷方式" -ForegroundColor Cyan
-	Write-Host "  iex (irm btn-bc.pages.dev/link)"
+	Write-Host "  iex (irm btn-bc.pages.dev/link)`n"
 	Write-Host "  执行以下命令重建自启动任务计划" -ForegroundColor Cyan
 	Write-Host "  iex (irm btn-bc.pages.dev/task)"
 	timeout 120
