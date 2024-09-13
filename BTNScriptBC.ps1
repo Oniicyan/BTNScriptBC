@@ -306,8 +306,8 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "
 New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
 if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
-	[Tricks]::SetForegroundWindow($hwnd)
-	[Tricks]::ShowWindowAsync($hwnd,1)
+	[Tricks]::SetForegroundWindow($hwnd) | Out-Null
+	[Tricks]::ShowWindowAsync($hwnd,1) | Out-Null
 	Invoke-Setup
 }
 if ($SETUP) {
