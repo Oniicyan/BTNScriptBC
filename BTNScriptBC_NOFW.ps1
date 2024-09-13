@@ -121,7 +121,7 @@ function Invoke-Setup {
 			$TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $ENV:COMPUTERNAME\$ENV:USERNAME
 			$ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
 			$TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TRIGGER -Action $ACTION
-			Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
+			Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK -ErrorAction Ignore | Out-Null
 			Write-Host "`n  已配置自启动任务计划：BTNScriptBC_STARTUP`n"
 		}
 	}
