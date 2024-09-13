@@ -180,16 +180,14 @@ APPSEC = $APPSEC
 	Clear-Host
 }
 
-# 加载 user32.dll
+# 加载 user32.dll，获取窗口句柄
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
 public class Tricks {
 	[DllImport("user32.dll")]
-	public static extern IntPtr FindWindow(string lpClassName,string lpWindowName);
-	public static IntPtr FindWindowByName(string lpWindowName) {
-		return FindWindow(null, lpWindowName);
-	}
+	public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+	public static IntPtr FindWindowByName(string lpWindowName) {return FindWindow(null, lpWindowName);}
 	[DllImport("user32.dll")]
 	public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 	[DllImport("user32.dll")]
