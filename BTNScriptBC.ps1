@@ -48,7 +48,7 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 }
 Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 if (Test-Path $APPWTPATH) {
-	if ((Get-Content $NEWPATH\STARTUP.cmd) -Notmatch 'wt\.exe') {
+	if ((Get-Content $NEWPATH\STARTUP.cmd -ErrorAction Ignore) -Notmatch 'wt\.exe') {
 		"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $NEWPATH\STARTUP.cmd
 	}
 }
