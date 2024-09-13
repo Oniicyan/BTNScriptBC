@@ -20,3 +20,4 @@ $TASK = New-ScheduledTask -Principal $PRINCIPAL -Settings $SETTINGS -Trigger $TR
 Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
 Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $TASK | Out-Null
 Write-Host "`n  已配置自启动任务计划：BTNScriptBC_STARTUP`n"
+Read-Host 操作完成，按 Enter 键结束...
