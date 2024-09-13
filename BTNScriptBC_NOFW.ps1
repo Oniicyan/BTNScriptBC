@@ -180,16 +180,6 @@ APPSEC = $APPSEC
 	Clear-Host
 }
 
-# 用户配置与动态关键字信息的初始化
-# 仅在检测不到 USERINFO.txt 时，执行初始配置
-$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
-$INFOPATH = "$USERPATH\USERINFO.txt"
-New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
-if (!(Test-Path $INFOPATH)) {
-	$SETUP = 1
-	Invoke-Setup
-}
-
 # 加载 user32.dll
 Add-Type @"
 using System;
@@ -207,9 +197,20 @@ public class Tricks {
 	public static extern bool SetForegroundWindow(IntPtr hWnd);
 }
 "@
-
-# 隐藏窗口
 $hwnd = [Tricks]::FindWindowByName($Host.UI.RawUI.WindowTitle)
+
+# 用户配置与动态关键字信息的初始化
+# 仅在检测不到 USERINFO.txt 时，执行初始配置
+# 初始配置时显示窗口，否则隐藏
+$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
+$INFOPATH = "$USERPATH\USERINFO.txt"
+New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
+if (!(Test-Path $INFOPATH)) {
+	$SETUP = 1
+	[Tricks]::SetForegroundWindow($hwnd) | Out-Null
+	[Tricks]::ShowWindowAsync($hwnd,1) | Out-Null
+	Invoke-Setup
+}
 if ($SETUP) {
 	$WINDOW = 1
 } else {
