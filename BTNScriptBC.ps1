@@ -222,13 +222,28 @@ function Invoke-Setup {
 	Write-Host "  ----------------------------------"
 	Write-Host "  请填写用户信息（点击鼠标右键粘贴）"
 	Write-Host "  ----------------------------------`n"
-	Write-Host "  地址可填写 IPv4、IPv6 或域名"
-	Write-Host "  本机可填写 127.0.0.1，::1 或 localhost"
-	Write-Host "  无需 http:// 或 /panel/ 等 URL 标识`n"
+	Write-Host "  需要填写的项目为如下`n"
+	Write-Host "    BitComet WebUI 地址"
+	Write-Host "    BitComet WebUI 端口"
+	Write-Host "    BitComet WebUI 账号"
+	Write-Host "    BitComet WebUI 密码"
+	Write-Host "    BTN AppId"
+	Write-Host "    BTN AppSecret`n"
+	Write-Host "  地址可填写 IPv4、IPv6 或域名，可加端口"
+	Write-Host "  也可直接粘贴 URL`n"
 	Write-Host "  WebUI 密码将明文保存至本地文件"
 	Write-Host "  不建议重复使用常用密码"
 	$UIADDR = Read-Host -Prompt "`n  BitComet WebUI 地址"
-	$UIPORT = Read-Host -Prompt "`n  BitComet WebUI 端口"
+	if ($UIADDR -Match ':') {
+		if ($UIADDR -Match '([a-z0-9]*\..*:\d{1,5})|(\w{5,}:\d{1,5})') {
+			$UIADDR = $Matches[0].Split(':')[0]
+			$UIPORT = $Matches[0].Split(':')[1]
+		} elseif ($UIADDR -Match '\[.*]:\d{1,5}') {
+			$UIADDR = ($Matches[0] -Split ']:')[0] -Replace '\['
+			$UIPORT = ($Matches[0] -Split ']:')[1]
+		}
+	}
+	if (!$UIPORT) {$UIPORT = Read-Host -Prompt "`n  BitComet WebUI 端口"}
 	$UIUSER = Read-Host -Prompt "`n  BitComet WebUI 账号"
 	$UIPASS = Read-Host -Prompt "`n  BitComet WebUI 密码"
 	$APPUID = Read-Host -Prompt "`n  BTN AppId"
