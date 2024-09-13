@@ -1,6 +1,10 @@
 $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
-if (!(Test-Path $USERPATH\STARTUP.cmd)) {Write-Host `n  未配置 BTNScriptBC`n; return}
+if (!(Test-Path $USERPATH\STARTUP.cmd)) {
+	Write-Host `n  未配置 BTNScriptBC`n
+	return
+}
 if ((Fltmc).Count -eq 3) {
+	$APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 	if (Test-Path $APPWTPATH) {
 		$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
 	} else {
