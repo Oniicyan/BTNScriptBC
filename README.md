@@ -67,13 +67,13 @@ https://btn-prod.ghostchu-services.top/
 
 ## 可选配置
 
-执行以下配置无过滤规则脚本
-
-`iex (irm btn-bc.pages.dev/nofw)`
-
 执行以下命令添加过滤规则
 
 `iex (irm btn-bc.pages.dev/add)`
+
+执行以下配置无过滤规则脚本
+
+`iex (irm btn-bc.pages.dev/nofw)`
 
 执行以下命令重建桌面快捷方式
 
