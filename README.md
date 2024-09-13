@@ -77,7 +77,11 @@ https://btn-prod.ghostchu-services.top/
 
 执行以下命令重建桌面快捷方式
 
-`iex (irm bt-ban.pages.dev/lnk)`
+`iex (irm bt-ban.pages.dev/link)`
+
+执行以下命令重建自启动任务计划
+
+`iex (irm bt-ban.pages.dev/task)`
 
 执行以下命令清理 Windows 防火墙中的冗余规则
 
