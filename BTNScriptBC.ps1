@@ -276,19 +276,6 @@ APPSEC = $APPSEC
 	Clear-Host
 }
 
-# 用户配置与动态关键字信息的初始化
-# 仅在检测不到 USERINFO.txt 时，执行初始配置
-$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
-$INFOPATH = "$USERPATH\USERINFO.txt"
-$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
-New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses 1.2.3.4 -ErrorAction Ignore | Out-Null
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
-New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
-if (!(Test-Path $INFOPATH)) {
-	$SETUP = 1
-	Invoke-Setup
-}
-
 # 加载 user32.dll
 Add-Type @"
 using System;
@@ -306,9 +293,22 @@ public class Tricks {
 	public static extern bool SetForegroundWindow(IntPtr hWnd);
 }
 "@
-
-# 隐藏窗口
 $hwnd = [Tricks]::FindWindowByName($Host.UI.RawUI.WindowTitle)
+
+# 用户配置与动态关键字信息的初始化
+# 仅在检测不到 USERINFO.txt 时，执行初始配置
+# 初始配置时显示窗口，否则隐藏
+$USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
+$INFOPATH = "$USERPATH\USERINFO.txt"
+$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses 1.2.3.4 -ErrorAction Ignore | Out-Null
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
+New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
+if (!(Test-Path $INFOPATH)) {
+	$SETUP = 1
+	[Tricks]::SetForegroundWindow($hwnd)
+	Invoke-Setup
+}
 if ($SETUP) {
 	$WINDOW = 1
 } else {
