@@ -1,8 +1,5 @@
 $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
-if (!(Test-Path $USERPATH\STARTUP.cmd)) {
-	Read-Host `n未配置 BTNScriptBC，按 Enter 键结束...
-	return
-}
+if (!(Test-Path $USERPATH\STARTUP.cmd)) {Write-Host `n  未配置 BTNScriptBC`n; return}
 $LINKPATH = "$USERPATH\BTNScriptBC.lnk"
 $WshShell = New-Object -COMObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($LINKPATH)
