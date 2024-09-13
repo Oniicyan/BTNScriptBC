@@ -274,15 +274,32 @@ if (!(Test-Path $INFOPATH)) {
 	Invoke-Setup
 }
 
-# 隐藏窗口
-$ShowWindowAsyncCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
-$ShowWindowAsync = Add-Type -MemberDefinition $ShowWindowAsyncCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
-$hwnd = (Get-Process -PID $PID).MainWindowHandle
-if ($hwnd -eq [System.IntPtr]::Zero) {
-	$TerminalProcess = Get-Process | Where-Object {$_.MainWindowTitle -eq $Host.UI.RawUI.WindowTitle}
-	$hwnd = $TerminalProcess.MainWindowHandle
+# 加载 user32.dll
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Tricks {
+	[DllImport("user32.dll")]
+	public static extern IntPtr FindWindow(string lpClassName,string lpWindowName);
+	public static IntPtr FindWindowByName(string lpWindowName) {
+		return FindWindow(null, lpWindowName);
+	}
+	[DllImport("user32.dll")]
+	public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool SetForegroundWindow(IntPtr hWnd);
 }
-if (!$SETUP) {$Null = $ShowWindowAsync::ShowWindowAsync($hwnd,0)}
+"@
+
+# 隐藏窗口
+$hwnd = [Tricks]::FindWindowByName($Host.UI.RawUI.WindowTitle)
+if ($SETUP) {
+	$WINDOW = 1
+} else {
+	[Tricks]::ShowWindowAsync($hwnd,0) | Out-Null
+	$WINDOW = 0
+}
 
 # 通知区域图标
 [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
@@ -296,25 +313,19 @@ $Main_Tool_Icon.Icon = $ICON
 $Main_Tool_Icon.Visible = $True
 
 # 通知区域按键
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Tricks {
-	[DllImport("user32.dll")]
-	[return: MarshalAs(UnmanagedType.Bool)]
-	public static extern bool SetForegroundWindow(IntPtr hWnd);
-}
-"@
 $Main_Tool_Icon.Add_Click({
 	switch ($_.Button) {
 		([Windows.Forms.MouseButtons]::Left) {
-			if ($Global:SWITCH -ne 1) {
-				[Tricks]::SetForegroundWindow($hwnd)
-				$ShowWindowAsync::ShowWindowAsync($hwnd,1)
-				$Global:SWITCH = 1
-			} else {
-				$ShowWindowAsync::ShowWindowAsync($hwnd,0)
-				$Global:SWITCH = 0
+			switch ($WINDOW) {
+				0 {
+					[Tricks]::SetForegroundWindow($hwnd)
+					[Tricks]::ShowWindowAsync($hwnd,1)
+					$Global:WINDOW = 1
+				}
+				1 {
+					[Tricks]::ShowWindowAsync($hwnd,0)
+					$Global:WINDOW = 0
+				}
 			}
 		}
 		([Windows.Forms.MouseButtons]::Right) {[System.Windows.Forms.SendKeys]::SendWait('^')}
