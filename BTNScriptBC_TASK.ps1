@@ -1,6 +1,6 @@
 $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
 if (!(Test-Path $USERPATH\STARTUP.cmd)) {
-	Read-Host `n未配置 BTNScriptBC，按 Enter 键结束...
+	Write-Host `n  未配置 BTNScriptBC`n
 	return
 }
 if ((Fltmc).Count -eq 3) {
