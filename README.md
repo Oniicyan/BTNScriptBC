@@ -35,19 +35,12 @@ https://btn-prod.ghostchu-services.top/
 
 ### 为什么需要管理员权限？
 
-本脚本以下 3 种命令需要管理员权限执行
+以下 Windows 防火墙命令需要管理员权限执行
 
 1. `New/Remove-NetFirewallRule`：创建／移除过滤规则
 2. `New/Update/Remove-NetFirewallDynamicKeywordAddress`：创建／更新／移除动态关键字
-3. `Set-ItemProperty`：修改注册表
 
-   `Invoke-WebRequest` 命令需要使用 IE 引擎；当 IE 引擎未初始化时会报错停止
-
-   通过修改注册表的方法跳过 IE 引擎的初始化检测，不影响功能
-
-在使用 `nofw` 脚本时，1. 和 2. 并不需要；而 3. 仅在初始配置中，检测到 `Invoke-WebRequest` 命令报错时需要。
-
-因此，`nofw` 脚本不强制要求管理员权限。
+`nofw` 脚本仅提交 Peers 快照，不使用 Windows 防火墙，因此不需要管理员权限。
 
 ## 启用配置
 
@@ -89,8 +82,8 @@ https://btn-prod.ghostchu-services.top/
 
 # 安全提醒
 
-从网络上获取并执行脚本会有较大的风险，特别是给予最高权限的
+从网络上获取并执行脚本会有较大的风险，特别是给予管理员权限的。
 
-当网络脚本被恶意修改，或网络地址被挟持到恶意脚本时，会造成严重的后果
+当网络脚本被恶意修改，或网络地址被挟持到恶意脚本时，会造成严重的后果。
 
-如有安全需求，请自行审查代码内容并保存至本地执行
+如有安全需求，请自行审查代码内容并保存至本地执行。
