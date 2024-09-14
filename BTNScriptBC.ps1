@@ -108,7 +108,6 @@ if ($DISABLED = Get-NetFirewallProfile | Where-Object {$_.Enabled -eq 0}) {
 }
 
 # 初始配置
-# 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
 	Write-Host "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端`n"
 	Write-Host "  脚本从 BitComet 的 WebUI 中获取 Peers 列表，并格式化数据提交至 BTN 服务器`n"
@@ -300,7 +299,6 @@ $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
 $INFOPATH = "$USERPATH\USERINFO.txt"
 $DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
 New-NetFirewallDynamicKeywordAddress -Id $DYKWID -Keyword "BTN_IPLIST" -Addresses 1.2.3.4 -ErrorAction Ignore | Out-Null
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
 New-Item -ItemType Directory -Path $USERPATH -ErrorAction Ignore | Out-Null
 if (!(Test-Path $INFOPATH)) {
 	$SETUP = 1
@@ -503,7 +501,7 @@ $UIHOME = "http://$UIHOST"
 $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER,($UIPASS))
 while ($UIRESP.StatusCode -ne 200) {
 	try {
-		$UIRESP = Invoke-Webrequest -TimeoutSec 15 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
+		$UIRESP = Invoke-Webrequest -UseBasicParsing -TimeoutSec 15 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		if ($_ -Match '401') {
@@ -796,7 +794,7 @@ function Invoke-SumbitPeers {
 	$GZIPLENGTH = [Regex]::Matches(((Get-Item $PEERSGZIP).Length / 1KB),'\d*\.?\d')[0].Value
 	if ($GZIPLENGTH -Notmatch '\.\d') {$GZIPLENGTH = $GZIPLENGTH + '.0'}
 	try {
-		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
+		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NEWCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
@@ -814,7 +812,7 @@ function Get-BTNRules {
 		$REVURL = "?rev=$(([Regex]::Matches((Get-Content $RULESJSON | Select-String 'version'),'[0-9a-f]{8}')).Value)"
 	}
 	try {
-		$RULESIWR = Invoke-Webrequest -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NOWCONFIG.ability.rules.endpoint + $REVURL)
+		$RULESIWR = Invoke-Webrequest -UseBasicParsing -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS ($NEWCONFIG.ability.rules.endpoint + $REVURL)
 		if ($RULESIWR.Content.Length -eq 0) {
 			Write-Host (Get-Date) [ 当前 BTN 封禁规则已是最新 ] -ForegroundColor Green
 			return
@@ -877,6 +875,7 @@ $Main_Tool_Icon.Text = "BTNScriptBC - 共 $IPCOUNT 条 IP 规则"
 # 2. 等待并执行最近的一个（排列首位的）任务
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
+Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 while ($True) {
 	Get-Job | Remove-Job -Force
 	$Global:JOBFLAG = 0
@@ -905,7 +904,6 @@ while ($True) {
 		$NOWCONFIG.ability.rules | Add-Member cmd "Get-BTNRules"
 		$NOWCONFIG.ability.iplist | Add-Member cmd "Get-IPList"
 		$NOWCONFIG.ability.reconfigure | Add-Member cmd "Get-BTNConfig"
-		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.rules.interval / 1000) 秒查询 BTN 封禁规则更新 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.iplist.interval / 1000) 秒查询 IP 黑名单订阅更新 ] -ForegroundColor Cyan
@@ -922,6 +920,6 @@ while ($True) {
 	switch ($JOBFLAG) {
 		0 {Invoke-Expression $JOBLIST[0].cmd; $JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))}
 		1 {continue}
-		2 {Remove-Variable NOWCONFIG}
+		2 {Remove-Variable NOWCONFIG -ErrorAction Ignore}
 	}
 }
