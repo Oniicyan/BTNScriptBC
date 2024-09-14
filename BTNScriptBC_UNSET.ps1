@@ -61,7 +61,7 @@ if ($TASKLIST = Get-ScheduledTask BTNScriptBC_*) {
 	Write-Host "`n  没有需要清除的任务计划"
 }
 
-if ($LINKPATH = Get-Item "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC.lnk" -ErrorAction Ignore) {
+if ($LINKPATH = Get-Item "$([Environment]::GetFolderPath("Desktop"))\BTNScriptBC*.lnk" -ErrorAction Ignore) {
 	Write-Host "`n  清除以下桌面快捷方式"
 	Write-Host "`n  BTNScriptBC.lnk"
 	Write-Host
