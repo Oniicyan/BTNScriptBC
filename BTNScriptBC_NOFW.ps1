@@ -75,20 +75,17 @@ function Invoke-Setup {
 	} else {
 		"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
 	}
-	$LINKPATH = "$USERPATH\BTNScriptBC.lnk"
+	$LINKPATH = "$USERPATH\BTNScriptBC_nofw.lnk"
 	$WshShell = New-Object -COMObject WScript.Shell
 	$Shortcut = $WshShell.CreateShortcut($LINKPATH)
 	$Shortcut.TargetPath = "$USERPATH\STARTUP.cmd"
 	$Shortcut.IconLocation = "$ENV:WINDIR\System32\EaseOfAccessDialog.exe"
 	$Shortcut.Save()
-	$LINKBYTE = [System.IO.File]::ReadAllBytes($LINKPATH)
-	$LINKBYTE[0x15] = $LINKBYTE[0x15] -bor 0x20
-	[System.IO.File]::WriteAllBytes($LINKPATH,$LINKBYTE)
 	Unregister-ScheduledTask BTNScriptBC_STARTUP -Confirm:$false -ErrorAction Ignore
 	switch ($STARTUP) {
 		2 {
 			Copy-Item $LINKPATH $([Environment]::GetFolderPath("Desktop"))
-			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC.lnk`n"
+			Write-Host "`n  已配置桌面快捷方式：BTNScriptBC_nofw.lnk`n"
 		}
 		3 {}
 		default {
