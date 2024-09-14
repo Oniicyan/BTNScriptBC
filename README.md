@@ -21,16 +21,6 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 # 使用方法
 
-## 准备工作
-
-请先从以下链接创建 BTN 用户应用程序，记下 AppId 与 AppSecret
-
-https://btn-prod.ghostchu-services.top/
-
-打开 BitComet 的 工具--选项--高级设置--远程下载，勾上 “启用网页版远程下载”，填写并记下用户名与密码
-
-![BitComet_Setting](https://github.com/user-attachments/assets/7a71e244-eeca-4ee4-a6a1-6465f0d40e10)
-
 ## 系统要求
 
 动态关键字至少要求 Windows 10 21H2（更早的版本 [未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/New-NetFirewallDynamicKeywordAddress.md)）
@@ -57,6 +47,16 @@ https://btn-prod.ghostchu-services.top/
 当网络脚本被恶意修改，或网络地址被挟持到恶意脚本时，会造成严重的后果。
 
 如有安全需求，请自行审查代码内容并保存至本地执行。
+
+## 准备工作
+
+请先从以下链接创建 BTN 用户应用程序，记下 AppId 与 AppSecret
+
+https://btn-prod.ghostchu-services.top/
+
+打开 BitComet 的 工具--选项--高级设置--远程下载，勾上 “启用网页版远程下载”，填写并记下用户名与密码
+
+![BitComet_Setting](https://github.com/user-attachments/assets/7a71e244-eeca-4ee4-a6a1-6465f0d40e10)
 
 ## 启用配置
 
