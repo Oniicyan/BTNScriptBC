@@ -25,7 +25,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 https://btn-prod.ghostchu-services.top/
 
-动态关键字至少要求 Windows 10 21H2 左右的版本 （[未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/Get-NetFirewallDynamicKeywordAddress.md)）
+[动态关键字](https://learn.microsoft.com/windows/security/operating-system-security/network-security/windows-firewall/dynamic-keywords) 至少要求 Windows 10 21H2 左右的版本 （[未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/Get-NetFirewallDynamicKeywordAddress.md)）
 
 可选择不使用动态关键字的 `nofw` 脚本，但不提供过滤功能
 
