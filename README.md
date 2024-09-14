@@ -50,11 +50,15 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 ## 准备工作
 
-请先从以下链接创建 BTN 用户应用程序，记下 AppId 与 AppSecret
+从以下链接创建 BTN 用户应用程序，记下 AppId 与 AppSecret
 
 https://btn-prod.ghostchu-services.top/
 
+---
+
 打开 BitComet 的 工具--选项--高级设置--远程下载，勾上 “启用网页版远程下载”，填写并记下用户名与密码
+
+可复制网页地址，也可在配置时手动输入地址与端口（通常使用 192.168.x.x 局域网地址或 127.0.0.1 回环地址）
 
 ![BitComet_Setting](https://github.com/user-attachments/assets/7a71e244-eeca-4ee4-a6a1-6465f0d40e10)
 
