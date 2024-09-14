@@ -220,7 +220,7 @@ function Invoke-Setup {
 	Write-Host "  ----------------------------------"
 	Write-Host "  请填写用户信息（点击鼠标右键粘贴）"
 	Write-Host "  ----------------------------------`n"
-	Write-Host "  需要填写的项目为如下`n"
+	Write-Host "  需要填写的项目如下`n"
 	Write-Host "    BitComet WebUI 地址"
 	Write-Host "    BitComet WebUI 端口"
 	Write-Host "    BitComet WebUI 账号"
