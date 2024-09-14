@@ -9,29 +9,6 @@ $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
 Write-Host
 
-# 检测 IE 引擎是否可用
-# 不可用时提权执行
-try {
-	Invoke-WebRequest baidu.com | Out-Null
-} catch {
-	if ($_ -Match 'Internet Explorer') {
-		if ((Fltmc).Count -eq 3) {
-			if (Test-Path $APPWTPATH) {
-				$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
-			} else {
-				$PROCESS = "powershell -ArgumentList `"$($MyInvocation.MyCommand.Definition)`""
-			}
-			Write-Host "  当前 IE 引擎不可用`n"
-			Write-Host "  10 秒后以管理员权限继续执行，以绕过 IE 初始检测`n"
-			timeout 10
-			Invoke-Expression "Start-Process $PROCESS -Verb RunAs"
-			return
-		} else {
-			Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
-		}
-	}
-}
-
 # 名称变更，此部分保留一段时间
 $OLDPATH = "$ENV:USERPROFILE\BTN_BC"
 $NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
@@ -69,7 +46,6 @@ try {
 } catch {}
 
 # 初始配置
-# 关闭 IE 引擎的初始检测，否则可能会导致 Invoke-WebRequest 出错
 function Invoke-Setup {
 	Write-Host "  BTNScriptBC 是 BitComet 的外挂脚本，作为 BTN 兼容客户端`n"
 	Write-Host "  脚本从 BitComet 的 WebUI 中获取 Peers 列表，并格式化数据提交至 BTN 服务器`n"
@@ -361,7 +337,7 @@ $UIHOME = "http://$UIHOST"
 $UIAUTH = New-Object System.Management.Automation.PSCredential($UIUSER,($UIPASS))
 while ($UIRESP.StatusCode -ne 200) {
 	try {
-		$UIRESP = Invoke-Webrequest -TimeoutSec 15 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
+		$UIRESP = Invoke-Webrequest -UseBasicParsing -TimeoutSec 15 -Credential $UIAUTH $UIHOME -MaximumRedirection 0 -ErrorAction Ignore
 	} catch {
 		Write-Host (Get-Date) [ $_ ] -ForegroundColor Red
 		if ($_ -Match '401') {
@@ -654,7 +630,7 @@ function Invoke-SumbitPeers {
 	$GZIPLENGTH = [Regex]::Matches(((Get-Item $PEERSGZIP).Length / 1KB),'\d*\.?\d')[0].Value
 	if ($GZIPLENGTH -Notmatch '\.\d') {$GZIPLENGTH = $GZIPLENGTH + '.0'}
 	try {
-		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NOWCONFIG.ability.submit_peers.endpoint | Out-Null
+		Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers ($AUTHHEADS + @{"Content-Encoding"="gzip"; "Content-Type"="application/json"}) -Method Post -InFile $PEERSGZIP $NEWCONFIG.ability.submit_peers.endpoint | Out-Null
 		Write-Host (Get-Date) [ 提交 Peers 快照成功，数据大小 $GZIPLENGTH KiB ] -ForegroundColor Green
 	} catch {
 		Get-ErrorMessage
@@ -671,6 +647,7 @@ function Invoke-SumbitPeers {
 # 2. 等待并执行最近的一个（排列首位的）任务
 # 3. 执行完成后，安排下次时间，回到 1.
 # 当 BTN 服务器配置的间隔要求发生变化时，重新配置下次执行时间
+Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 while ($True) {
 	Get-Job | Remove-Job -Force
 	$Global:JOBFLAG = 0
@@ -691,7 +668,6 @@ while ($True) {
 		}
 		$NOWCONFIG.ability.submit_peers | Add-Member cmd "Get-PeersJson; Invoke-SumbitPeers"
 		$NOWCONFIG.ability.reconfigure | Add-Member cmd "Get-BTNConfig"
-		Write-Host (Get-Date) [ BTNScriptBC 开始循环工作 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.submit_peers.interval / 1000) 秒提交 Peers 快照 ] -ForegroundColor Cyan
 		Write-Host (Get-Date) [ 每 $($NOWCONFIG.ability.reconfigure.interval / 1000) 秒查询 BTN 服务器配置更新 ] -ForegroundColor Cyan
 	}
@@ -705,6 +681,6 @@ while ($True) {
 	switch ($JOBFLAG) {
 		0 {Invoke-Expression $JOBLIST[0].cmd; $JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval / 1000)))}
 		1 {continue}
-		2 {Remove-Variable NOWCONFIG}
+		2 {Remove-Variable NOWCONFIG -ErrorAction Ignore}
 	}
 }
