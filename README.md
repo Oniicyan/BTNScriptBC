@@ -19,9 +19,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 自动订阅 IP 黑名单（[combine/all.txt](https://github.com/PBH-BTN/BTN-Collected-Rules/blob/main/combine/all.txt)）
 
-# 使用方法
-
-## 系统要求
+# 系统要求
 
 动态关键字至少要求 Windows 10 21H2（更早的版本 [未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/New-NetFirewallDynamicKeywordAddress.md)）
 
@@ -29,9 +27,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 **所有命令及脚本默认在 Windows PowerShell 下以管理员权限执行**
 
-按下 **Win + X 键**，Windows 11 选择 “**终端管理员**”，Windows 10 选择 “**Windows PowerShell（管理员）**”
-
-### 为什么需要管理员权限？
+## 为什么需要管理员权限？
 
 以下 Windows 防火墙命令需要管理员权限执行
 
@@ -40,13 +36,16 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 `nofw` 脚本仅提交 Peers 快照，不使用 Windows 防火墙，因此不需要管理员权限。
 
-### 风险提示
+## 风险提示
 
 从网络上获取并执行脚本会有较大的风险，特别是给予管理员权限的。
 
 当网络脚本被恶意修改，或网络地址被挟持到恶意脚本时，会造成严重的后果。
 
 如有安全需求，请自行审查代码内容并保存至本地执行。
+
+
+# 使用方法
 
 ## 准备工作
 
@@ -63,6 +62,8 @@ https://btn-prod.ghostchu-services.top/
 ![BitComet_Setting](https://github.com/user-attachments/assets/7a71e244-eeca-4ee4-a6a1-6465f0d40e10)
 
 ## 启用配置
+
+按下 **Win + X 键**，Windows 11 选择 “**终端管理员**”，Windows 10 选择 “**Windows PowerShell（管理员）**”
 
 执行
 
