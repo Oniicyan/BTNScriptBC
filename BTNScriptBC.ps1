@@ -11,7 +11,6 @@ $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 Write-Host
 
 # 检测管理员权限
-# nofw 版初始配置时需要
 if ((Fltmc).Count -eq 3) {
 	if (Test-Path $APPWTPATH) {
 		$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
