@@ -1,18 +1,22 @@
 $USERPATH = "$ENV:USERPROFILE\BTNScriptBC"
 if (!(Test-Path $USERPATH\STARTUP.cmd)) {Write-Host `n  未配置 BTNScriptBC`n; return}
-if ((Fltmc).Count -eq 3) {
-	$APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
-	if (Test-Path $APPWTPATH) {
-		$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
-	} else {
-		$PROCESS = "powershell -ArgumentList `"$($MyInvocation.MyCommand.Definition)`""
+if ((Get-Content $USERPATH\STARTUP.cmd) -Match 'nofw') {$NOFW = 1}
+if (!$NOFW) {
+	if ((Fltmc).Count -eq 3) {
+		$APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+		if (Test-Path $APPWTPATH) {
+			$PROCESS = "$APPWTPATH -ArgumentList `"powershell $($MyInvocation.MyCommand.Definition)`""
+		} else {
+			$PROCESS = "powershell -ArgumentList `"$($MyInvocation.MyCommand.Definition)`""
+		}
+		Write-Host "`n  10 秒后以管理员权限继续执行"
+		timeout 10
+		Invoke-Expression "Start-Process $PROCESS -Verb RunAs"
+		return
 	}
-	Write-Host "`n  10 秒后以管理员权限继续执行"
-	timeout 10
-	Invoke-Expression "Start-Process $PROCESS -Verb RunAs"
-	return
 }
 $PRINCIPAL = New-ScheduledTaskPrincipal -UserId $ENV:COMPUTERNAME\$ENV:USERNAME -RunLevel Highest
+if ($NOFW) {$PRINCIPAL = New-ScheduledTaskPrincipal -UserId $ENV:COMPUTERNAME\$ENV:USERNAME}
 $SETTINGS = New-ScheduledTaskSettingsSet -RunOnlyIfNetworkAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Seconds 60) -AllowStartIfOnBatteries
 $TRIGGER = New-ScheduledTaskTrigger -AtLogon -User $ENV:COMPUTERNAME\$ENV:USERNAME
 $ACTION = New-ScheduledTaskAction -Execute "$USERPATH\STARTUP.cmd"
