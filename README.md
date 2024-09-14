@@ -15,7 +15,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 支持目前规范中的所有字段，其中 [Flag](https://github.com/PBH-BTN/quick-references/blob/main/utp_flags.md) 替换为 qBittorrent 格式，可识别 `d D u U K ? I`
 
-支持 IP 形式的封禁规则，使用 Windows 防火墙配合 [动态关键字](https://learn.microsoft.com/zh-cn/windows/security/operating-system-security/network-security/windows-firewall/dynamic-keywords) 以实现封禁。
+支持 IP 形式的封禁规则，使用 Windows 防火墙配合 [动态关键字](https://learn.microsoft.com/windows/security/operating-system-security/network-security/windows-firewall/dynamic-keywords) 以实现封禁。
 
 自动订阅 IP 黑名单（[combine/all.txt](https://github.com/PBH-BTN/BTN-Collected-Rules/blob/main/combine/all.txt)）
 
@@ -25,7 +25,7 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 https://btn-prod.ghostchu-services.top/
 
-[动态关键字](https://learn.microsoft.com/windows/security/operating-system-security/network-security/windows-firewall/dynamic-keywords) 至少要求 Windows 10 21H2 左右的版本 （[未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/Get-NetFirewallDynamicKeywordAddress.md)）
+动态关键字至少要求 Windows 10 21H2 左右的版本 （[未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/Get-NetFirewallDynamicKeywordAddress.md)）
 
 可选择不使用动态关键字的 `nofw` 脚本，但不提供过滤功能
 
