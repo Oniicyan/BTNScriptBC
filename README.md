@@ -25,6 +25,12 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 https://btn-prod.ghostchu-services.top/
 
+同时需要在 BitComet 的高级设置中勾上 “启用网页版远程下载”，填写并记下用户名与密码
+
+![BitComet_Setting](https://github.com/user-attachments/assets/7a71e244-eeca-4ee4-a6a1-6465f0d40e10)
+
+## 系统要求
+
 动态关键字至少要求 Windows 10 21H2（更早的版本 [未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/New-NetFirewallDynamicKeywordAddress.md)）
 
 可选择不使用动态关键字的 `nofw` 脚本，但不提供过滤功能
