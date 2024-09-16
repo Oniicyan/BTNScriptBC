@@ -2,7 +2,7 @@
 Remove-Variable * -ErrorAction Ignore
 $Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
-$CONFIGURL = "https://btn-prod.ghostchu-services.top/ping/config"
+$CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $SCRIPTURL = "btn-bc.pages.dev/nofw"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
