@@ -302,7 +302,7 @@ function Test-WebUIPort {
 	if ($FLAG -eq 2) {
 		if ($BCRESP = (Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH $UIHOME) -Split '<br>' | Select-String 'BitComet') {
 			Write-Host (Get-Date) [ BitComet WebUI 访问成功 ] -ForegroundColor Green
-			Write-Host (Get-Date) [ $([Regex]::Matches($BCRESP[-1],'\w.*\w').Value) ] -ForegroundColor Cyan
+			Write-Host (Get-Date) [ $([Regex]::Matches($BCRESP[-1],'\w.*\w]?').Value) ] -ForegroundColor Cyan
 		} else {
 			Write-Host (Get-Date) [ 目标网页不是 BitComet WebUI，请重新配置 ] -ForegroundColor Red
 			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
