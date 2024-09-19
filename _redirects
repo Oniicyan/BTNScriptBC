@@ -1,4 +1,5 @@
 / /BTNScriptBC.ps1 301
+/ver /_version 302
 /add /BTNScriptBC_ADDFW.ps1 301
 /nofw /BTNScriptBC_NOFW.ps1 301
 /lnk /BTNScriptBC_LINK.ps1 301
