@@ -9,7 +9,7 @@ $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
 Write-Host
-$MyInvocation
+$MyInvocation.MyCommand
 pause
 
 # 检测管理员权限
