@@ -309,29 +309,6 @@ if ($SETUP) {
 	[Tricks]::ShowWindowAsync($hwnd,0) | Out-Null
 	$WINDOW = 0
 }
-Clear-Host
-
-# 查询脚本更新
-$LOCALVER = Get-Content $USERPATH\VERSION.txt -ErrorAction Ignore
-$REMOTEVER = (Invoke-RestMethod btn-bc.pages.dev/ver).Trim()
-if ($LOCALVER -ne $REMOTEVER) {
-	try {
-		Invoke-RestMethod $SCRIPTURL | Out-File $USERPATH/BTNScriptBC.ps1
-		$REMOTEVER | Out-File $USERPATH/VERSION.txt
-		Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 已保存至本地 ] -ForegroundColor Green
-		if ($SCRIPTVER -ne $REMOTEVER) {Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 下次启动时生效 ] -ForegroundColor Cyan}
-	} catch {
-		Write-Host (Get-Date) [ 脚本保存失败，请重试 ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
-		pause
-		return
-	}
-	if (Test-Path $APPWTPATH) {
-		"@start /min $APPWTPATH powershell $USERPATH\BTNScriptBC.ps1" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
-	} else {
-		"@start /min powershell $USERPATH\BTNScriptBC.ps1" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
-	}
-}
 
 # 通知区域图标
 [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
@@ -415,7 +392,31 @@ $Menu_Show.add_Click({
 	Write-Host (Get-Date) [ 下次查询配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
 })
 
+Clear-Host
 [System.GC]::Collect()
+
+# 查询脚本更新
+$LOCALVER = Get-Content $USERPATH\VERSION.txt -ErrorAction Ignore
+$REMOTEVER = (Invoke-RestMethod btn-bc.pages.dev/ver).Trim()
+if ($LOCALVER -ne $REMOTEVER) {
+	try {
+		Invoke-RestMethod $SCRIPTURL | Out-File $USERPATH/BTNScriptBC.ps1
+		$REMOTEVER | Out-File $USERPATH/VERSION.txt
+		Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 已保存至本地 ] -ForegroundColor Green
+		if ($SCRIPTVER -ne $REMOTEVER) {Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 下次启动时生效 ] -ForegroundColor Cyan}
+	} catch {
+		Write-Host (Get-Date) [ 脚本保存失败，请重试 ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+		pause
+		$Main_Tool_Icon.Dispose()
+		return
+	}
+	if (Test-Path $APPWTPATH) {
+		"@start /min $APPWTPATH powershell $USERPATH\BTNScriptBC.ps1" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	} else {
+		"@start /min powershell $USERPATH\BTNScriptBC.ps1" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	}
+}
 
 # 启动信息
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
