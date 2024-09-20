@@ -26,28 +26,28 @@ if ((Fltmc).Count -eq 3) {
 
 # 名称变更，此部分保留一段时间
 if (!(Test-Path $ENV:USERPROFILE\BTNScriptBC\VERSION.txt)) {
-$OLDPATH = "$ENV:USERPROFILE\BTN_BC"
-$NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
-if (Test-Path $NEWPATH) {
-	Remove-Item $OLDPATH -Force -ErrorAction Ignore
-} else {
-	Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
-}
-if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Sort-Object | Get-Unique) {
-	$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
-	foreach ($APPPATH in $OLDLIST) {
-		$APPNAME = [System.IO.Path]::GetFileName($APPPATH)
-		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Inbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
-		New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Outbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+	$OLDPATH = "$ENV:USERPROFILE\BTN_BC"
+	$NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
+	if (Test-Path $NEWPATH) {
+		Remove-Item $OLDPATH -Force -ErrorAction Ignore
+	} else {
+		Move-Item $OLDPATH $NEWPATH -Force -ErrorAction Ignore
 	}
-	Remove-NetFirewallRule -DisplayName BTN_*
-}
-if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
-	$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
-	Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
-	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
-}
-Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
+	if ($OLDLIST = (Get-NetFirewallRule -DisplayName BTN_* | Get-NetFirewallApplicationFilter).Program | Sort-Object | Get-Unique) {
+		$DYKWID = "{da62ac48-4707-4adf-97ea-676470a460f5}"
+		foreach ($APPPATH in $OLDLIST) {
+			$APPNAME = [System.IO.Path]::GetFileName($APPPATH)
+			New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Inbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+			New-NetFirewallRule -DisplayName "BTNScript_$APPNAME" -Direction Outbound -Action Block -Program $APPPATH -RemoteDynamicKeywordAddresses $DYKWID | Out-Null
+		}
+		Remove-NetFirewallRule -DisplayName BTN_*
+	}
+	if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
+		$NEWTASK = New-ScheduledTask -Principal $OLDTASK.Principal -Settings $OLDTASK.Settings -Trigger $OLDTASK.Triggers -Action $OLDTASK.Actions
+		Unregister-ScheduledTask BTN_BC_STARTUP -Confirm:$false -ErrorAction Ignore
+		Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
+	}
+	Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
 }
 
 # 检测重复运行
@@ -397,19 +397,23 @@ Clear-Host
 
 # 查询脚本更新
 $LOCALVER = Get-Content $USERPATH\VERSION.txt -ErrorAction Ignore
-$REMOTEVER = (Invoke-RestMethod btn-bc.pages.dev/ver).Trim()
+$REMOTEVER = (Invoke-RestMethod -TimeoutSec 15 btn-bc.pages.dev/ver).Trim()
 if ($LOCALVER -ne $REMOTEVER) {
 	try {
-		Invoke-RestMethod $SCRIPTURL | Out-File $USERPATH/BTNScriptBC.ps1
+		Invoke-RestMethod -TimeoutSec 30 $SCRIPTURL | Out-File $USERPATH/BTNScriptBC.ps1
 		$REMOTEVER | Out-File $USERPATH/VERSION.txt
 		Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 已保存至本地 ] -ForegroundColor Green
 		if ($SCRIPTVER -ne $REMOTEVER) {Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 下次启动时生效 ] -ForegroundColor Cyan}
 	} catch {
-		Write-Host (Get-Date) [ 脚本保存失败，请重试 ] -ForegroundColor Red
-		Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
-		pause
-		$Main_Tool_Icon.Dispose()
-		return
+		if (Test-Path $USERPATH/BTNScriptBC.ps1) {
+			Write-Host (Get-Date) [ 脚本更新失败，已跳过 ] -ForegroundColor Yellow
+		} else{
+			Write-Host (Get-Date) [ 脚本保存失败，请重试 ] -ForegroundColor Red
+			Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+			pause
+			$Main_Tool_Icon.Dispose()
+			return
+		}
 	}
 	if (Test-Path $APPWTPATH) {
 		"@start /min $APPWTPATH powershell iex (cat -raw $USERPATH\BTNScriptBC.ps1)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
