@@ -25,7 +25,7 @@ if ((Fltmc).Count -eq 3) {
 }
 
 # 名称变更，此部分保留一段时间
-if (!(Test-Path $USERPATH\VERSION.txt)) {
+if (!(Test-Path $ENV:USERPROFILE\BTNScriptBC\VERSION.txt)) {
 $OLDPATH = "$ENV:USERPROFILE\BTN_BC"
 $NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
 if (Test-Path $NEWPATH) {
