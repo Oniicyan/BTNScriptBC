@@ -309,6 +309,7 @@ if ($SETUP) {
 	[Tricks]::ShowWindowAsync($hwnd,0) | Out-Null
 	$WINDOW = 0
 }
+Clear-Host
 
 # 查询脚本更新
 $LOCALVER = Get-Content $USERPATH\VERSION.txt -ErrorAction Ignore
@@ -414,7 +415,6 @@ $Menu_Show.add_Click({
 	Write-Host (Get-Date) [ 下次查询配置在 $($NOWCONFIG.ability.reconfigure.next) ] -ForegroundColor Cyan
 })
 
-Clear-Host
 [System.GC]::Collect()
 
 # 启动信息
