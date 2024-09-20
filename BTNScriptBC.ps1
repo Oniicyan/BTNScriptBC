@@ -75,6 +75,7 @@ if (New-NetFirewallDynamicKeywordAddress -Id $TESTGUID -Keyword "BTNScriptBC_TES
 	Write-Host "  当前 Windows 版本不支持动态关键字，请升级操作系统`n"
 	Write-Host "  如不使用过滤规则，仅提交 Peers 列表至 BTN，请执行以下命令`n"
 	Write-Host "  iex (irm btn-bc.pages.dev/nofw)`n"
+	pause
 	return
 }
 
