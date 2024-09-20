@@ -5,7 +5,8 @@ $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
 $SCRIPTURL = "btn-bc.pages.dev"
-$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/v0.0.1 BTN-Protocol/0.0.1"
+$SCRIPTVER = "0.1.1"
+$USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/$SCRIPTVER BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
 Write-Host
@@ -24,6 +25,7 @@ if ((Fltmc).Count -eq 3) {
 }
 
 # 名称变更，此部分保留一段时间
+if (!(Test-Path $ENV:USERPROFILE\BTNScriptBC\VERSION.txt)) {
 $OLDPATH = "$ENV:USERPROFILE\BTN_BC"
 $NEWPATH = "$ENV:USERPROFILE\BTNScriptBC"
 if (Test-Path $NEWPATH) {
@@ -46,10 +48,6 @@ if ($OLDTASK = Get-ScheduledTask BTN_BC_STARTUP -ErrorAction Ignore) {
 	Register-ScheduledTask BTNScriptBC_STARTUP -InputObject $NEWTASK | Out-Null
 }
 Set-ScheduledTask BTNScriptBC_STARTUP -Action (New-ScheduledTaskAction -Execute "$NEWPATH\STARTUP.cmd") -ErrorAction Ignore | Out-Null
-if (Test-Path $APPWTPATH) {
-	if ((Get-Content $NEWPATH\STARTUP.cmd -ErrorAction Ignore) -Notmatch 'wt\.exe') {
-		"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $NEWPATH\STARTUP.cmd
-	}
 }
 
 # 检测重复运行
@@ -187,9 +185,9 @@ function Invoke-Setup {
 	Write-Host "     不配置启动方式，用户自行操作"
 	$STARTUP = Read-Host "`n请输入 1-3（默认为 跟随用户启动）"
 	if (Test-Path $APPWTPATH) {
-		"@start /min $APPWTPATH powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+		"@start /min $APPWTPATH powershell iex (cat -raw $USERPATH\BTNScriptBC.ps1)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
 	} else {
-		"@start /min powershell iex (irm $SCRIPTURL -TimeoutSec 60)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+		"@start /min powershell iex (cat -raw $USERPATH\BTNScriptBC.ps1)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
 	}
 	$LINKPATH = "$USERPATH\BTNScriptBC.lnk"
 	$WshShell = New-Object -COMObject WScript.Shell
@@ -396,6 +394,29 @@ $Menu_Show.add_Click({
 
 Clear-Host
 [System.GC]::Collect()
+
+# 查询脚本更新
+$LOCALVER = Get-Content $USERPATH\VERSION.txt -ErrorAction Ignore
+$REMOTEVER = (Invoke-RestMethod btn-bc.pages.dev/ver).Trim()
+if ($LOCALVER -ne $REMOTEVER) {
+	try {
+		Invoke-RestMethod $SCRIPTURL | Out-File $USERPATH/BTNScriptBC.ps1
+		$REMOTEVER | Out-File $USERPATH/VERSION.txt
+		Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 已保存至本地 ] -ForegroundColor Green
+		if ($SCRIPTVER -ne $REMOTEVER) {Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 下次启动时生效 ] -ForegroundColor Cyan}
+	} catch {
+		Write-Host (Get-Date) [ 脚本保存失败，请重试 ] -ForegroundColor Red
+		Write-Host (Get-Date) [ 退出 BTNScriptBC ] -ForegroundColor Red
+		pause
+		$Main_Tool_Icon.Dispose()
+		return
+	}
+	if (Test-Path $APPWTPATH) {
+		"@start /min $APPWTPATH powershell iex (cat -raw $USERPATH\BTNScriptBC.ps1)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	} else {
+		"@start /min powershell iex (cat -raw $USERPATH\BTNScriptBC.ps1)" | Out-File -Encoding ASCII $USERPATH\STARTUP.cmd
+	}
+}
 
 # 启动信息
 Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
