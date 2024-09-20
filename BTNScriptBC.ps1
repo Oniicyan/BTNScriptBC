@@ -400,12 +400,12 @@ $LOCALVER = Get-Content $USERPATH\VERSION.txt -ErrorAction Ignore
 $REMOTEVER = (Invoke-RestMethod -TimeoutSec 15 btn-bc.pages.dev/ver).Trim()
 if ($LOCALVER -ne $REMOTEVER) {
 	try {
-		Invoke-RestMethod -TimeoutSec 30 $SCRIPTURL | Out-File $USERPATH/BTNScriptBC.ps1
-		$REMOTEVER | Out-File $USERPATH/VERSION.txt
+		Invoke-RestMethod -TimeoutSec 30 $SCRIPTURL | Out-File $USERPATH\BTNScriptBC.ps1
+		$REMOTEVER | Out-File $USERPATH\VERSION.txt
 		Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 已保存至本地 ] -ForegroundColor Green
 		if ($SCRIPTVER -ne $REMOTEVER) {Write-Host (Get-Date) [ BTNScriptBC/$REMOTEVER 下次启动时生效 ] -ForegroundColor Cyan}
 	} catch {
-		if (Test-Path $USERPATH/BTNScriptBC.ps1) {
+		if (Test-Path $USERPATH\BTNScriptBC.ps1) {
 			Write-Host (Get-Date) [ 脚本更新失败，已跳过 ] -ForegroundColor Yellow
 		} else{
 			Write-Host (Get-Date) [ 脚本保存失败，请重试 ] -ForegroundColor Red
