@@ -695,7 +695,7 @@ while ($True) {
 	}
 	[System.GC]::Collect()
 	$JOBLIST = $NOWCONFIG.ability.PSObject.Properties.Value | Sort-Object next
-	if (!$JOBLIST[0].cmd) {$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Seconds ($JOBLIST[0].interval * 1000))); continue}
+	if (!$JOBLIST[0].cmd) {$JOBLIST[0].next = ((Get-Date) + (New-TimeSpan -Hours $JOBLIST[0].interval)); continue}
 	if ((Get-Date) -lt $JOBLIST[0].next) {
 		Start-Job {Start-Sleep ($Using:JOBLIST[0].next - (Get-Date)).TotalSeconds} | Out-Null
 		Get-Job | Wait-Job | Out-Null
