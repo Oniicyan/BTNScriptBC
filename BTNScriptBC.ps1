@@ -5,7 +5,7 @@ $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
 $SCRIPTURL = "btn-bc.pages.dev"
-$SCRIPTVER = "0.1.1"
+$SCRIPTVER = "0.1.2"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/$SCRIPTVER BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
