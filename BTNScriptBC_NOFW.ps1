@@ -4,7 +4,7 @@ $Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $SCRIPTURL = "btn-bc.pages.dev/nofw"
-$SCRIPTVER = "0.1.2"
+$SCRIPTVER = "0.1.3"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/$SCRIPTVER BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
@@ -586,22 +586,27 @@ function Get-TaskPeers {
 				$rt_upload_speed = Invoke-Expression (($RATEVAL[1].Value -Replace ' ') -Replace '/s')
 			}
 		}
-		$PEERHASH = @{
-			ip_address = $ip_address
-			peer_port = [Int]$peer_port
-			peer_id = $peer_id
-			client_name = $client_name
-			torrent_identifier = $torrent_identifier
-			torrent_size = [Math]::Round($torrent_size)
-			downloaded = [Math]::Round($downloaded)
-			rt_download_speed = [Math]::Round($rt_download_speed)
-			uploaded = [Math]::Round($uploaded)
-			rt_upload_speed = [Math]::Round($rt_upload_speed)
-			peer_progress = [decimal]$peer_progress
-			downloader_progress = [decimal]$downloader_progress
-			peer_flag = $peer_flag -Replace ' $'
+		try {
+			$PEERHASH = @{
+				ip_address = $ip_address
+				peer_port = [Int]$peer_port
+				peer_id = $peer_id
+				client_name = $client_name
+				torrent_identifier = $torrent_identifier
+				torrent_size = [Math]::Round($torrent_size)
+				downloaded = [Math]::Round($downloaded)
+				rt_download_speed = [Math]::Round($rt_download_speed)
+				uploaded = [Math]::Round($uploaded)
+				rt_upload_speed = [Math]::Round($rt_upload_speed)
+				peer_progress = [decimal]$peer_progress
+				downloader_progress = [decimal]$downloader_progress
+				peer_flag = $peer_flag -Replace ' $'
+			}
+			$SUBMITHASH.peers += $PEERHASH
+		} catch {
+			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
+			$_ | Out-File -Append $USERPATH\UNKNOWN.txt
 		}
-		$SUBMITHASH.peers += $PEERHASH
 	}
 }
 
