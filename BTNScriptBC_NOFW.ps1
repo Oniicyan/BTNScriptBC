@@ -4,7 +4,7 @@ $Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $SCRIPTURL = "btn-bc.pages.dev/nofw"
-$SCRIPTVER = "0.1.3"
+$SCRIPTVER = "0.1.4"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/$SCRIPTVER BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
@@ -514,15 +514,16 @@ function Get-TaskPeers {
 	}
 	$downloader_progress = Get-QuadFloat ([Regex]::Matches(($SUMMARY.Split([Environment]::NewLine) | Select-String 'left \)'),'\d*.?\d%').Value)
 	$PEERS -Split '<tr>' | Select-String '>[IciC_]{4}<' | ForEach-Object {
-		if ($_ -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
+		$RAW = $_
+		if ($RAW -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
 			$ip_address = $Matches[0].Split(':')[0]
 			$peer_port = $Matches[0].Split(':')[1]
-		} elseif ($_ -Match '2[0-9a-f]{3}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
+		} elseif ($RAW -Match '2[0-9a-f]{3}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 		} else {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$_ | Out-File -Append $USERPATH\UNKNOWN.txt
+			$RAW | Out-File -Append $USERPATH\UNKNOWN.txt
 			return
 		}
 		switch -Regex ($ip_address) {
@@ -533,22 +534,22 @@ function Get-TaskPeers {
 			'^127\.' {return}
 		}
 		if ($ip_address -Match '^f[cde]..:') {return}
-		if ($_ -Match '[0-9a-f]{40}') {
+		if ($RAW -Match '[0-9a-f]{40}') {
 			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
 		} else {
 			$peer_id = ""
 		}
-		$_ -Match '(?<=\d:\d\d:\d\d<\/td><td>).*?(?=<)' | Out-Null
+		$RAW -Match '(?<=\d:\d\d:\d\d<\/td><td>).*?(?=<)' | Out-Null
 		if ($Matches[0] -Match 'n/a') {
 			$client_name = ""
 		} else {
 			$client_name = $Matches[0]
 		}
-		$_ -Match '(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)' | Out-Null
-		$downloaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
-		$uploaded = Invoke-Expression ((([Regex]::Matches($_,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
-		$peer_progress = Get-QuadFloat ([Regex]::Matches($_ ,'\d*.?\d%'))
-		$BCFLAGS = [Regex]::Matches($_,'(?<=>)[IciC_]{4}(?=<)').Value
+		$RAW -Match '(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)' | Out-Null
+		$downloaded = Invoke-Expression ((([Regex]::Matches($RAW,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
+		$uploaded = Invoke-Expression ((([Regex]::Matches($RAW,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
+		$peer_progress = Get-QuadFloat ([Regex]::Matches($RAW ,'\d*.?\d%'))
+		$BCFLAGS = [Regex]::Matches($RAW,'(?<=>)[IciC_]{4}(?=<)').Value
 		$peer_flag = ""
 		switch -Regex ($BCFLAGS) {
 			'Ic..' {$peer_flag = $peer_flag + 'd '}
@@ -560,12 +561,12 @@ function Get-TaskPeers {
 			'..i_' {$peer_flag = $peer_flag + 'U '}
 			'..__' {$peer_flag = $peer_flag + '? '}
 		}
-		if ($_ -Match 'Remote') {
+		if ($RAW -Match 'Remote') {
 			$peer_flag = $peer_flag + 'I'
 		} else {
 			$peer_flag = $peer_flag -Replace ' $'
 		}
-		$RATESTR = $_ -Replace '(Remote|Local).*'
+		$RATESTR = $RAW -Replace '(Remote|Local).*'
 		$RATEVAL = [Regex]::Matches($RATESTR,'(?<=>)\d*\.?\d* [KMGTPEZY]?B\/s(?=<)')
 		switch ($RATEVAL.Count) {
 			0 {
@@ -573,12 +574,12 @@ function Get-TaskPeers {
 				$rt_upload_speed = 0
 			}
 			1 {
-				if ($downloader_progress -eq 1 -or $peer_flag -Cnotmatch 'u') {
-					$rt_download_speed = 0
-					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
-				} else {
+				if (($peer_progress -eq 1 -or $peer_flag -Cmatch 'D|u' -or $peer_flag -Cnotmatch 'K|U') -and $downloader_progress -ne 1) {
 					$rt_download_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 					$rt_upload_speed = 0
+				} else {
+					$rt_download_speed = 0
+					$rt_upload_speed = Invoke-Expression (($RATEVAL[0].Value -Replace ' ') -Replace '/s')
 				}
 			}
 			2 {
@@ -605,7 +606,7 @@ function Get-TaskPeers {
 			$SUBMITHASH.peers += $PEERHASH
 		} catch {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$_ | Out-File -Append $USERPATH\UNKNOWN.txt
+			$RAW | Out-File -Append $USERPATH\UNKNOWN.txt
 		}
 	}
 }
