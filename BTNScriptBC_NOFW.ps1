@@ -613,6 +613,7 @@ function Get-TaskPeers {
 			Write-Host (Get-Date) [ 格式错误的 Peer 信息，记录原始数据至 UNKNOWN.txt ] -ForegroundColor Yellow
 			[String](Get-Date) + ' ' + $_.Exception.Message | Out-File -Append $USERPATH\UNKNOWN.txt
 			[String](Get-Date) + ' ' + $RAW | Out-File -Append $USERPATH\UNKNOWN.txt
+			[String](Get-Date) + " {torrent_identifier = $torrent_identifier, torrent_size = $torrent_size, downloader_progress = $downloader_progress}" | Out-File -Append $USERPATH\UNKNOWN.txt
 			if ((Get-Content $USERPATH\UNKNOWN.txt -ErrorAction Ignore).Count -ge 1000) {
 				Move-Item $USERPATH\UNKNOWN.txt $USERPATH\UNKNOWN.txt.old -Force -ErrorAction Ignore
 				Write-Host (Get-Date) [ UNKNOWN.txt 达到 1000 行，已转存为 UNKNOWN.txt.old ] -ForegroundColor Yellow
