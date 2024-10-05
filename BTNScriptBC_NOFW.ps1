@@ -4,7 +4,7 @@ $Host.UI.RawUI.WindowTitle = "BTNScriptBC_$PID"
 $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $SCRIPTURL = "btn-bc.pages.dev/nofw"
-$SCRIPTVER = "0.1.4"
+$SCRIPTVER = "0.1.5"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/$SCRIPTVER BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
@@ -282,13 +282,6 @@ Write-Host (Get-Date) [ $USERAGENT ] -ForegroundColor Cyan
 $CONFIGURL -Match '(\w+:\/\/)([^\/:]+)(:\d*)?([^# ]*)' | Out-Null
 Write-Host (Get-Date) [ BTN 服务器：$($Matches[1] + $Matches[2]) ] -ForegroundColor Cyan
 Write-Host (Get-Date) [ 点击通知区域图标以显示／隐藏窗口 ] -ForegroundColor Cyan
-$UNKNOWN = {
-	if ((Get-Content $USERPATH\UNKNOWN.txt -ErrorAction Ignore).Count -ge 1000) {
-		Move-Item $USERPATH\UNKNOWN.txt $USERPATH\UNKNOWN.txt.old -Force -ErrorAction Ignore
-		Write-Host (Get-Date) [ UNKNOWN.txt 达到 1000 行，已转存为 UNKNOWN.txt.old ] -ForegroundColor Yellow
-	}
-}
-&$UNKNOWN
 
 # 载入用户信息并定义基本变量
 $USERINFO = ConvertFrom-StringData (Get-Content -Raw $INFOPATH)
@@ -525,23 +518,26 @@ function Get-TaskPeers {
 		if ($RAW -Match '(\d{1,3}\.){3}\d{1,3}:\d{1,5}') {
 			$ip_address = $Matches[0].Split(':')[0]
 			$peer_port = $Matches[0].Split(':')[1]
-		} elseif ($RAW -Match '2[0-9a-f]{3}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
+			switch -Regex ($ip_address) {
+				'^10\.' {return}
+				'^172\.(1[6-9]|2[0-9]|3[01])\.' {return}
+				'^192\.168\.' {return}
+				'^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' {return}
+				'^127\.' {return}
+			}
+		} elseif ($RAW -Match '[0-9a-f]{4}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
+			if ($ip_address -Notmatch '^2') {return}
 		} else {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$RAW | Out-File -Append $USERPATH\UNKNOWN.txt
-			&$UNKNOWN
+			[String](Get-Date) + ' ' + $RAW | Out-File -Append $USERPATH\UNKNOWN.txt
+			if ((Get-Content $USERPATH\UNKNOWN.txt -ErrorAction Ignore).Count -ge 1000) {
+				Move-Item $USERPATH\UNKNOWN.txt $USERPATH\UNKNOWN.txt.old -Force -ErrorAction Ignore
+				Write-Host (Get-Date) [ UNKNOWN.txt 达到 1000 行，已转存为 UNKNOWN.txt.old ] -ForegroundColor Yellow
+			}
 			return
 		}
-		switch -Regex ($ip_address) {
-			'^10\.' {return}
-			'^172\.(1[6-9]|2[0-9]|3[01])\.' {return}
-			'^192\.168\.' {return}
-			'^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' {return}
-			'^127\.' {return}
-		}
-		if ($ip_address -Match '^f[cde]..:') {return}
 		if ($RAW -Match '[0-9a-f]{40}') {
 			$peer_id = -Join ($Matches[0].SubString(0,16) -Replace '(..)','[char]0x${0};'| Invoke-Expression)
 		} else {
@@ -553,7 +549,6 @@ function Get-TaskPeers {
 		} else {
 			$client_name = $Matches[0]
 		}
-		$RAW -Match '(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)' | Out-Null
 		$downloaded = Invoke-Expression ((([Regex]::Matches($RAW,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[0]) -Replace ' ')
 		$uploaded = Invoke-Expression ((([Regex]::Matches($RAW,'(?<=>)\d*\.?\d* [KMGTPEZY]?B(?=<)')).Value[1]) -Replace ' ')
 		$peer_progress = Get-QuadFloat ([Regex]::Matches($RAW ,'\d*.?\d%'))
@@ -614,8 +609,11 @@ function Get-TaskPeers {
 			$SUBMITHASH.peers += $PEERHASH
 		} catch {
 			Write-Host (Get-Date) [ 记录一个无法识别的 Peer 到 UNKNOWN.txt ] -ForegroundColor Yellow
-			$RAW | Out-File -Append $USERPATH\UNKNOWN.txt
-			&$UNKNOWN
+			[String](Get-Date) + ' ' + $RAW | Out-File -Append $USERPATH\UNKNOWN.txt
+			if ((Get-Content $USERPATH\UNKNOWN.txt -ErrorAction Ignore).Count -ge 1000) {
+				Move-Item $USERPATH\UNKNOWN.txt $USERPATH\UNKNOWN.txt.old -Force -ErrorAction Ignore
+				Write-Host (Get-Date) [ UNKNOWN.txt 达到 1000 行，已转存为 UNKNOWN.txt.old ] -ForegroundColor Yellow
+			}
 		}
 	}
 }
