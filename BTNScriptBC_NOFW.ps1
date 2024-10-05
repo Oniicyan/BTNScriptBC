@@ -524,6 +524,7 @@ function Get-TaskPeers {
 				'^192\.168\.' {return}
 				'^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' {return}
 				'^127\.' {return}
+				'^169\.254\.' {return}
 			}
 		} elseif ($RAW -Match '[0-9a-f]{4}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
