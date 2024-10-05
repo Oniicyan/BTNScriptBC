@@ -780,8 +780,8 @@ function Get-TaskPeers {
 			Write-Host (Get-Date) [ 格式错误的 Peer 信息，记录原始数据至 UNKNOWN.txt ] -ForegroundColor Yellow
 			[String](Get-Date) + ' ' + $_.Exception.Message | Out-File -Append $USERPATH\UNKNOWN.txt
 			[String](Get-Date) + ' ' + $RAW | Out-File -Append $USERPATH\UNKNOWN.txt
-      Write-Output @"
-      $PEERHASH = @{
+      			Write-Output @"
+      			$$PEERHASH = @{
 				ip_address = $ip_address
 				peer_port = [Int]$peer_port
 				peer_id = $peer_id
