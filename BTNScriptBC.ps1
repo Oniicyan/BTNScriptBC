@@ -5,7 +5,7 @@ $Global:ProgressPreference = "SilentlyContinue"
 $CONFIGURL = "https://sparkle.ghostchu.com/ping/config"
 $IPLISTURL = "https://bt-ban.pages.dev/IPLIST.txt"
 $SCRIPTURL = "btn-bc.pages.dev"
-$SCRIPTVER = "0.1.5"
+$SCRIPTVER = "0.1.6"
 $USERAGENT = "WindowsPowerShell/$([String]$Host.Version) BTNScriptBC/$SCRIPTVER BTN-Protocol/0.0.1"
 $APPWTPATH = "$ENV:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
@@ -673,7 +673,7 @@ function Get-TaskPeers {
 		Write-Host (Get-Date) [ 跳过一个 BTv2 任务 ] -ForegroundColor Yellow
 		return
 	}
-	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' '
+	$BIBYTE = (($SUMMARY -Split '>' | Select-String '\d*\.?\d* [KMGTPEZY]?B' | Select-String 'Selected') -Replace 'Selected.*') -Replace ' |,'
 	if ($BIBYTE -Match '\dB') {
 		$torrent_size = $BIBYTE -Replace 'B'
 	} else {
