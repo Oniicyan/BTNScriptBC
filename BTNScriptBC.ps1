@@ -693,12 +693,13 @@ function Get-TaskPeers {
 				'^127\.' {return}
 				'^169\.254\.' {return}
 			}
-		} elseif ($RAW -Match '[0-9a-f]{4}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:\d{1,5}') {
+		} elseif ($RAW -Match '[0-9a-f]{4}:([0-9a-f]{1,4}):(:?[0-9a-f]{1,4}:?){1,6}:?:\d{1,5}') {
 			$ip_address = $Matches[0] -Replace ':[0-9]{1,5}$'
 			$peer_port = ($Matches[0] -Split ':')[-1]
 			if ($ip_address -Notmatch '^2') {return}
 		} else {
 			Write-Host (Get-Date) [ 无法识别的 IP 地址，记录原始数据至 UNKNOWN.txt ] -ForegroundColor Yellow
+			[String](Get-Date) + ' 无法识别的 IP 地址' | Out-File -Append $USERPATH\UNKNOWN.txt
 			[String](Get-Date) + ' ' + $RAW | Out-File -Append $USERPATH\UNKNOWN.txt
 			if ((Get-Content $USERPATH\UNKNOWN.txt -ErrorAction Ignore).Count -ge 1000) {
 				Move-Item $USERPATH\UNKNOWN.txt $USERPATH\UNKNOWN.txt.old -Force -ErrorAction Ignore
@@ -777,6 +778,7 @@ function Get-TaskPeers {
 			$SUBMITHASH.peers += $PEERHASH
 		} catch {
 			Write-Host (Get-Date) [ 格式错误的 Peer 信息，记录原始数据至 UNKNOWN.txt ] -ForegroundColor Yellow
+			[String](Get-Date) + ' ' + $_.Exception.Message | Out-File -Append $USERPATH\UNKNOWN.txt
 			[String](Get-Date) + ' ' + $RAW | Out-File -Append $USERPATH\UNKNOWN.txt
 			if ((Get-Content $USERPATH\UNKNOWN.txt -ErrorAction Ignore).Count -ge 1000) {
 				Move-Item $USERPATH\UNKNOWN.txt $USERPATH\UNKNOWN.txt.old -Force -ErrorAction Ignore
