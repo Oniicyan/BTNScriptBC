@@ -608,6 +608,7 @@ function Get-SaltedHash {
 # 获取 BTN 服务器配置
 function Get-BTNConfig {
 #	if (!$NOWCONFIG) {$CONFIGURL = $CONFIGURL + "?rand=$(Get-Random)"}
+	Write-Host (Get-Date) [ 开始查询 BTN 服务器配置更新... ] -ForegroundColor Cyan
 	while ($True) {
 		try {
 			$NEWCONFIG = Invoke-RestMethod -TimeoutSec 30 -UserAgent $USERAGENT -Headers $AUTHHEADS $CONFIGURL
@@ -792,6 +793,7 @@ function Get-TaskPeers {
 # 获取活动任务列表，并调用上述函数传递 URL 参数获取 Peers 哈希表
 # Peers 哈希表转换为 JSON 保存
 function Get-PeersJson {
+	Write-Host (Get-Date) [ 开始提交 Peers 快照... ] -ForegroundColor Cyan
 	Test-WebUIPort
 	try {
 		$ACTIVE = ((Invoke-RestMethod -TimeoutSec 15 -Credential $UIAUTH ${UIHOME}task_list) -Split '<.?tr>' -Replace '> (HTTPS|HTTP|FTP) <.*' -Split "'" | Select-String '.*action=stop') -Split '&|=' | Select-String '.*\d' | ForEach-Object {"${UIHOME}task_detail?id=" + $_}
@@ -850,6 +852,7 @@ function Invoke-SumbitPeers {
 $RULESJSON = "$USERPATH\RULES.json"
 $BTNIPLIST = "$USERPATH\RULES.txt"
 function Get-BTNRules {
+	Write-Host (Get-Date) [ 开始查询 BTN 封禁规则更新... ] -ForegroundColor Cyan
 	if (Test-Path $RULESJSON) {
 		$REVURL = "?rev=$(([Regex]::Matches((Get-Content $RULESJSON | Select-String 'version'),'[0-9a-f]{8}')).Value)"
 	}
@@ -882,6 +885,7 @@ function Get-BTNRules {
 # 更新 IP 黑名单订阅
 $ALLIPLIST = "$USERPATH\IPLIST.txt"
 function Get-IPList {
+	Write-Host (Get-Date) [ 开始查询 IP 黑名单订阅更新... ] -ForegroundColor Cyan
 	try {
 		$NEWIPLIST = Invoke-RestMethod -TimeoutSec 30 $IPLISTURL
 		if ((-Split $NEWIPLIST).Count -eq (Get-Content $ALLIPLIST -ErrorAction Ignore).Count) {
