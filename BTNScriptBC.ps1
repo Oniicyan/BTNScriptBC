@@ -864,7 +864,7 @@ function Get-BTNRules {
 		}
 		$RULESOBJ = [system.Text.Encoding]::UTF8.GetString($RULESIWR.RawContentStream.ToArray()) | ConvertFrom-Json
 		$RULESOBJ | ConvertTo-Json | Out-File $RULESJSON
-		$RULESOBJ.IP.PSObject.Properties.value | Sort-Object | Get-Unique | Select-String -Notmatch '^::1$' | Out-File $BTNIPLIST
+		$RULESOBJ.IP.PSObject.Properties.value | Select-String -Notmatch '^::1$' | Out-File $BTNIPLIST
 		if (Test-Path $ALLIPLIST) {
 			$ADDRESS = ((Get-Content $BTNIPLIST) + (Get-Content $ALLIPLIST)) -Join ','
 		} else {
