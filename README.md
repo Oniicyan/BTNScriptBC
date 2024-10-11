@@ -19,6 +19,10 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 
 自动订阅 IP 黑名单（[combine/all.txt](https://github.com/PBH-BTN/BTN-Collected-Rules/blob/main/combine/all.txt)）
 
+　
+
+**[PeerBanHelper](https://github.com/PBH-BTN/PeerBanHelper) 已适配 [BitComet 2.10](https://download.bitcomet.com/archive/BitComet_2.10_setup.exe)，建议升级**
+
 # 系统要求
 
 动态关键字至少要求 Windows 10 21H2（更早的版本 [未确认](https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2022-ps/netsecurity/New-NetFirewallDynamicKeywordAddress.md)）
@@ -59,6 +63,13 @@ https://btn-prod.ghostchu-services.top/
 可复制网页地址，也可在配置时手动输入地址与端口（通常使用 192.168.x.x 局域网地址或 127.0.0.1 回环地址）
 
 ![BitComet_Setting](https://github.com/user-attachments/assets/7a71e244-eeca-4ee4-a6a1-6465f0d40e10)
+
+---
+
+建议使用 BitComet 2.10 以上的版本，并开启 “在全局速度限制中忽略远程访问连接”
+
+![BitComet_Adv](https://github.com/user-attachments/assets/3e593bec-41aa-4b93-9d94-dee43344a04c)
+
 
 ## 启用配置
 
