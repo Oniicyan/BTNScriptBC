@@ -2,6 +2,8 @@
 
 **BTN-Spec 已更新，本脚本不再提供支持**
 
+请执行 `iex (irm btn-bc.pages.dev/unset)` 清除配置
+
 ---
 
 # 介绍
