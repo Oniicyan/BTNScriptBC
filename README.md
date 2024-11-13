@@ -1,3 +1,9 @@
+**[PeerBanHelper](https://github.com/PBH-BTN/PeerBanHelper) 已适配 [BitComet 2.10](https://download.bitcomet.com/archive/BitComet_2.10_setup.exe)，建议升级**
+
+**BTN-Spec 已更新，本脚本不再提供支持**
+
+---
+
 # 介绍
 
 针对 [BitComet](https://www.bitcomet.com/en/archive) 的外挂脚本，作为 BTN 兼容客户端，遵循 [BTN-Spec](https://github.com/PBH-BTN/BTN-Spec)
@@ -18,10 +24,6 @@ Peers 快照通过 BitComet WebUI 提取并分析，封装后提交。
 支持 IP 形式的封禁规则，使用 Windows 防火墙配合 [动态关键字](https://learn.microsoft.com/windows/security/operating-system-security/network-security/windows-firewall/dynamic-keywords) 以实现封禁。
 
 自动订阅 IP 黑名单（[combine/all.txt](https://github.com/PBH-BTN/BTN-Collected-Rules/blob/main/combine/all.txt)）
-
-　
-
-**[PeerBanHelper](https://github.com/PBH-BTN/PeerBanHelper) 已适配 [BitComet 2.10](https://download.bitcomet.com/archive/BitComet_2.10_setup.exe)，建议升级**
 
 # 系统要求
 
